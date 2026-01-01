@@ -13,10 +13,10 @@ class Config:
     BOT_TOKEN: str = os.getenv("BOT_TOKEN", "8459447990:AAE9yPVgoi6MicC1xa5Lc8SzhVT51k6y-yQ")
     
     # Database
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
     DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
-    DB_NAME: str = os.getenv("DB_NAME", "dtc_job_bot")
-    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_NAME: str = os.getenv("DB_NAME") or os.getenv("DB_DATABASE", "dtc")
+    DB_USER: str = os.getenv("DB_USER") or os.getenv("DB_USERNAME", "fayez")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "Fayez")
     
     # Database URL
