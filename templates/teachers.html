@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الأساتذة - DTC Job Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header .logo-container { display: flex; align-items: center; gap: 15px; }
+        .header .logo-container img { height: 50px; width: auto; }
+        .header h1 { font-size: 24px; }
+        .header a { color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-menu a { padding: 10px 20px; background: white; text-decoration: none; color: #0066CC; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-menu a:hover, .nav-menu a.active { background: #0066CC; color: white; }
+        .section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section h2 { margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #0066CC; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #0066CC; color: white; }
+        .btn-primary:hover { background: #004499; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-small { padding: 5px 10px; font-size: 14px; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: end; }
+        .filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 200px; }
+        .teacher-card { border: 1px solid #eee; border-radius: 10px; padding: 20px; margin-bottom: 15px; transition: box-shadow 0.3s; }
+        .teacher-card:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .teacher-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .teacher-name { font-size: 20px; font-weight: bold; color: #333; }
+        .teacher-number { color: #666; font-size: 14px; }
+        .teacher-meta { color: #666; font-size: 14px; margin-bottom: 10px; }
+        .teacher-specs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 12px; }
+        .badge-spec { background: #e3f2fd; color: #1565c0; }
+        .badge-subject { background: #e8f5e9; color: #2e7d32; }
+        .badge-active { background: #28a745; color: white; }
+        .badge-inactive { background: #dc3545; color: white; }
+        .badge-primary { background: #ffc107; color: #000; }
+        .teacher-subjects { margin-top: 10px; }
+        .teacher-subjects h4 { font-size: 14px; color: #666; margin-bottom: 5px; }
+        .empty-state { text-align: center; padding: 40px; color: #666; }
+        .empty-state .icon { font-size: 48px; margin-bottom: 10px; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-item { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-item .value { font-size: 24px; font-weight: bold; color: #0066CC; }
+        .stat-item .label { font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>👨‍🏫 إدارة الأساتذة</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/teachers" class="active">الأساتذة</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+            <a href="/subjects">المواد</a>
+        </div>
+        
+        <!-- Stats -->
+        <div class="section">
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="value">{{ teachers|length }}</div>
+                    <div class="label">إجمالي الأساتذة</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value">{{ specializations|length }}</div>
+                    <div class="label">التخصصات</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="section">
+            <form method="get" action="/teachers">
+                <div class="filter-bar">
+                    <div class="form-group">
+                        <label>البحث:</label>
+                        <input type="text" name="search" value="{{ search_query }}" placeholder="ابحث بالاسم أو البريد أو الرقم...">
+                    </div>
+                    <div class="form-group">
+                        <label>فلترة حسب التخصص:</label>
+                        <select name="spec_filter">
+                            <option value="">جميع التخصصات</option>
+                            {% for spec in specializations %}
+                            <option value="{{ spec.id }}" {% if spec_filter == spec.id %}selected{% endif %}>{{ spec.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">بحث</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Teachers List -->
+        <div class="section">
+            <h2>قائمة الأساتذة</h2>
+            {% if teachers %}
+                {% for teacher in teachers %}
+                <div class="teacher-card">
+                    <div class="teacher-header">
+                        <div>
+                            <div class="teacher-name">
+                                {{ teacher.full_name or 'بدون اسم' }}
+                                {% if teacher.is_active %}
+                                <span class="badge badge-active">نشط</span>
+                                {% else %}
+                                <span class="badge badge-inactive">محظور</span>
+                                {% endif %}
+                            </div>
+                            <div class="teacher-number">
+                                {% if teacher.teacher_number %}رقم الأستاذ: {{ teacher.teacher_number }}{% endif %}
+                            </div>
+                        </div>
+                        <a href="/teachers/{{ teacher.id }}" class="btn btn-primary btn-small">عرض التفاصيل ←</a>
+                    </div>
+                    
+                    <div class="teacher-meta">
+                        📧 {{ teacher.email }}
+                        {% if teacher.phone_number %} | 📱 {{ teacher.phone_number }}{% endif %}
+                        {% if teacher.gender %} | {{ '👨' if teacher.gender.value == 'male' else '👩' }}{% endif %}
+                    </div>
+                    
+                    {% if teacher.teacher_specializations %}
+                    <div class="teacher-specs">
+                        <strong>التخصصات:</strong>
+                        {% for ts in teacher.teacher_specializations %}
+                        <span class="badge badge-spec">
+                            {{ ts.specialization.name }}
+                            {% if ts.is_primary %}<span class="badge badge-primary">رئيسي</span>{% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if teacher.teacher_subjects %}
+                    <div class="teacher-subjects">
+                        <h4>المواد التي يدرسها:</h4>
+                        <div class="teacher-specs">
+                            {% for ts in teacher.teacher_subjects[:5] %}
+                            <span class="badge badge-subject">{{ ts.subject.name }}</span>
+                            {% endfor %}
+                            {% if teacher.teacher_subjects|length > 5 %}
+                            <span class="badge badge-subject">+{{ teacher.teacher_subjects|length - 5 }} مواد أخرى</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="icon">👨‍🏫</div>
+                    <p>لا يوجد أساتذة مسجلون حالياً</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المواد - DTC Job Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header .logo-container { display: flex; align-items: center; gap: 15px; }
+        .header .logo-container img { height: 50px; width: auto; }
+        .header h1 { font-size: 24px; }
+        .header a { color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-menu a { padding: 10px 20px; background: white; text-decoration: none; color: #0066CC; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-menu a:hover, .nav-menu a.active { background: #0066CC; color: white; }
+        .section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section h2 { margin-bottom: 15px; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #0066CC; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #0066CC; color: white; }
+        .btn-primary:hover { background: #004499; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-small { padding: 5px 10px; font-size: 14px; }
+        .item { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .item:last-child { border-bottom: none; }
+        .item-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .item-info { flex: 1; }
+        .item-title { font-weight: bold; color: #333; font-size: 18px; margin-bottom: 5px; }
+        .item-meta { color: #666; font-size: 14px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 10px; }
+        .badge-active { background: #28a745; color: white; }
+        .badge-inactive { background: #dc3545; color: white; }
+        .badge-spec { background: #0066CC; color: white; }
+        .item-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: end; }
+        .filter-bar .form-group { margin-bottom: 0; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 5% auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: #000; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>📚 إدارة المواد الدراسية</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/teachers">الأساتذة</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+            <a href="/subjects" class="active">المواد</a>
+        </div>
+        
+        <!-- Filter Bar -->
+        <div class="section">
+            <div class="filter-bar">
+                <div class="form-group">
+                    <label>فلترة حسب التخصص:</label>
+                    <select id="spec-filter" onchange="filterBySpec()">
+                        <option value="">جميع التخصصات</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec.id }}" {% if spec_filter == spec.id %}selected{% endif %}>{{ spec.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">➕ إضافة مادة جديدة</button>
+            </div>
+        </div>
+        
+        <!-- Subjects List -->
+        <div class="section">
+            <h2>جميع المواد ({{ subjects|length }})</h2>
+            {% if subjects %}
+                {% for subject in subjects %}
+                <div class="item">
+                    <div class="item-header">
+                        <div class="item-info">
+                            <div class="item-title">
+                                {{ subject.name }}
+                                {% if subject.code %}
+                                <span style="color: #666; font-weight: normal;">({{ subject.code }})</span>
+                                {% endif %}
+                                {% if subject.is_active %}
+                                <span class="badge badge-active">نشط</span>
+                                {% else %}
+                                <span class="badge badge-inactive">معطل</span>
+                                {% endif %}
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-spec">{{ subject.specialization.name if subject.specialization else 'غير محدد' }}</span>
+                                {% if subject.credit_hours %}| الساعات: {{ subject.credit_hours }}{% endif %}
+                                {% if subject.description %}| {{ subject.description[:50] }}...{% endif %}
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-secondary btn-small" onclick="editSubject({{ subject.id }}, '{{ subject.name }}', '{{ subject.code or '' }}', '{{ subject.description or '' }}', {{ subject.specialization_id }}, {{ subject.credit_hours or 0 }}, {{ subject.display_order }})">✏️ تعديل</button>
+                            {% if subject.is_active %}
+                            <button class="btn btn-danger btn-small" onclick="toggleSubject({{ subject.id }}, 'تعطيل')">🚫 تعطيل</button>
+                            {% else %}
+                            <button class="btn btn-success btn-small" onclick="toggleSubject({{ subject.id }}, 'تفعيل')">✅ تفعيل</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>لا توجد مواد</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Add Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ إضافة مادة جديدة</h2>
+                <span class="close" onclick="closeAddModal()">&times;</span>
+            </div>
+            <form id="add-subject-form" onsubmit="addSubject(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>اسم المادة: *</label>
+                        <input type="text" name="name" required placeholder="مثال: رياضيات 1">
+                    </div>
+                    <div class="form-group">
+                        <label>رمز المادة:</label>
+                        <input type="text" name="code" placeholder="مثال: MATH101">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>التخصص: *</label>
+                    <select name="specialization_id" required>
+                        <option value="">اختر التخصص</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec.id }}">{{ spec.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>الساعات المعتمدة:</label>
+                        <input type="number" name="credit_hours" min="0" placeholder="3">
+                    </div>
+                    <div class="form-group">
+                        <label>ترتيب العرض:</label>
+                        <input type="number" name="display_order" value="0" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الوصف:</label>
+                    <textarea name="description" rows="3" placeholder="وصف المادة..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">إضافة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ تعديل المادة</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="edit-subject-form" onsubmit="updateSubject(event)">
+                <input type="hidden" id="edit-subject-id" name="subject_id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>اسم المادة: *</label>
+                        <input type="text" id="edit-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>رمز المادة:</label>
+                        <input type="text" id="edit-code" name="code">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>التخصص: *</label>
+                    <select id="edit-spec-id" name="specialization_id" required>
+                        {% for spec in specializations %}
+                        <option value="{{ spec.id }}">{{ spec.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>الساعات المعتمدة:</label>
+                        <input type="number" id="edit-credit-hours" name="credit_hours" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>ترتيب العرض:</label>
+                        <input type="number" id="edit-display-order" name="display_order" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>الوصف:</label>
+                    <textarea id="edit-description" name="description" rows="3"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function filterBySpec() {
+            const specId = document.getElementById('spec-filter').value;
+            if (specId) {
+                window.location.href = `/subjects?spec_filter=${specId}`;
+            } else {
+                window.location.href = '/subjects';
+            }
+        }
+        
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'block';
+        }
+        
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        async function addSubject(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch('/api/subject', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        function editSubject(id, name, code, description, specId, creditHours, displayOrder) {
+            document.getElementById('edit-subject-id').value = id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-code').value = code;
+            document.getElementById('edit-description').value = description;
+            document.getElementById('edit-spec-id').value = specId;
+            document.getElementById('edit-credit-hours').value = creditHours || '';
+            document.getElementById('edit-display-order').value = displayOrder;
+            document.getElementById('editModal').style.display = 'block';
+        }
+        
+        async function updateSubject(event) {
+            event.preventDefault();
+            const subjectId = document.getElementById('edit-subject-id').value;
+            const formData = new FormData(event.target);
+            
+            try {
+                const response = await fetch(`/api/subject/${subjectId}/update`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    closeEditModal();
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function toggleSubject(id, action) {
+            if (!confirm(`هل أنت متأكد من ${action} هذه المادة؟`)) return;
+            
+            try {
+                const response = await fetch(`/api/subject/${id}/toggle`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        window.onclick = function(event) {
+            if (event.target.className === 'modal') {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
+

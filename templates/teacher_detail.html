@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل الأستاذ - DTC Job Bot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white; padding: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header .logo-container { display: flex; align-items: center; gap: 15px; }
+        .header .logo-container img { height: 50px; width: auto; }
+        .header h1 { font-size: 24px; }
+        .header a { color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px; }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav-menu a { padding: 10px 20px; background: white; text-decoration: none; color: #0066CC; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-menu a:hover { background: #0066CC; color: white; }
+        .section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .section h2 { margin-bottom: 15px; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .section h3 { margin-bottom: 10px; color: #555; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #0066CC; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn-primary { background: #0066CC; color: white; }
+        .btn-primary:hover { background: #004499; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-small { padding: 5px 10px; font-size: 14px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .info-item .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-item .value { font-size: 16px; font-weight: 500; color: #333; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 15px; font-size: 12px; margin: 2px; }
+        .badge-spec { background: #e3f2fd; color: #1565c0; }
+        .badge-subject { background: #e8f5e9; color: #2e7d32; }
+        .badge-primary { background: #ffc107; color: #000; font-size: 10px; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+        .tag { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; background: #f0f0f0; border-radius: 20px; font-size: 14px; }
+        .tag button { background: none; border: none; color: #dc3545; cursor: pointer; font-size: 16px; padding: 0; margin-right: 5px; }
+        .tag button:hover { color: #a71d2a; }
+        .add-form { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; align-items: end; }
+        .add-form .form-group { margin-bottom: 0; flex: 1; min-width: 200px; }
+        .back-btn { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>👨‍🏫 تفاصيل الأستاذ</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/teachers">الأساتذة</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+            <a href="/subjects">المواد</a>
+        </div>
+        
+        <div class="back-btn">
+            <a href="/teachers" class="btn btn-secondary">← العودة لقائمة الأساتذة</a>
+        </div>
+        
+        <!-- Teacher Info -->
+        <div class="section">
+            <h2>📋 معلومات الأستاذ</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="label">الاسم الكامل</div>
+                    <div class="value">{{ teacher.full_name or 'غير محدد' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">رقم الأستاذ</div>
+                    <div class="value">{{ teacher.teacher_number or 'غير محدد' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">البريد الإلكتروني</div>
+                    <div class="value">{{ teacher.email }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">رقم الهاتف</div>
+                    <div class="value">{{ teacher.phone_number or 'غير محدد' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">الجنس</div>
+                    <div class="value">{{ 'ذكر' if teacher.gender and teacher.gender.value == 'male' else 'أنثى' if teacher.gender and teacher.gender.value == 'female' else 'غير محدد' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">تاريخ التسجيل</div>
+                    <div class="value">{{ teacher.created_at.strftime('%Y-%m-%d') if teacher.created_at else 'غير متاح' }}</div>
+                </div>
+            </div>
+            
+            <h3>✏️ تعديل البيانات</h3>
+            <form id="update-teacher-form" onsubmit="updateTeacher(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>الاسم الكامل:</label>
+                        <input type="text" name="full_name" value="{{ teacher.full_name or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم الأستاذ:</label>
+                        <input type="text" name="teacher_number" value="{{ teacher.teacher_number or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>البريد الإلكتروني:</label>
+                        <input type="email" name="email" value="{{ teacher.email }}">
+                    </div>
+                    <div class="form-group">
+                        <label>رقم الهاتف:</label>
+                        <input type="text" name="phone_number" value="{{ teacher.phone_number or '' }}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+            </form>
+        </div>
+        
+        <!-- Specializations -->
+        <div class="section">
+            <h2>🎓 التخصصات</h2>
+            <div class="tag-list">
+                {% if teacher_specs %}
+                    {% for ts in teacher_specs %}
+                    <div class="tag">
+                        <span>{{ ts.specialization.name }}</span>
+                        {% if ts.is_primary %}<span class="badge badge-primary">رئيسي</span>{% endif %}
+                        <button onclick="removeSpecialization({{ ts.specialization.id }})" title="إزالة">×</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666;">لا توجد تخصصات مسجلة</p>
+                {% endif %}
+            </div>
+            
+            <div class="add-form">
+                <div class="form-group">
+                    <label>إضافة تخصص:</label>
+                    <select id="new-spec-id">
+                        <option value="">اختر تخصص</option>
+                        {% for spec in all_specs %}
+                        {% set already_added = spec.id in (teacher_specs | map(attribute='specialization_id') | list) %}
+                        {% if not already_added %}
+                        <option value="{{ spec.id }}">{{ spec.name }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>رئيسي؟</label>
+                    <select id="new-spec-primary">
+                        <option value="false">لا</option>
+                        <option value="true">نعم</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="addSpecialization()">إضافة</button>
+            </div>
+        </div>
+        
+        <!-- Subjects -->
+        <div class="section">
+            <h2>📚 المواد الدراسية</h2>
+            <div class="tag-list">
+                {% if teacher_subjects %}
+                    {% for ts in teacher_subjects %}
+                    <div class="tag">
+                        <span>{{ ts.subject.name }}</span>
+                        {% if ts.academic_year %}<small>({{ ts.academic_year }})</small>{% endif %}
+                        <button onclick="removeSubject({{ ts.subject.id }})" title="إزالة">×</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666;">لا توجد مواد مسجلة</p>
+                {% endif %}
+            </div>
+            
+            <div class="add-form">
+                <div class="form-group">
+                    <label>إضافة مادة:</label>
+                    <select id="new-subject-id">
+                        <option value="">اختر مادة</option>
+                        {% for subject in all_subjects %}
+                        {% set already_added = subject.id in (teacher_subjects | map(attribute='subject_id') | list) %}
+                        {% if not already_added %}
+                        <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.specialization.name if subject.specialization else 'غير محدد' }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>السنة الدراسية:</label>
+                    <input type="text" id="new-subject-year" placeholder="2024-2025">
+                </div>
+                <div class="form-group" style="max-width: 150px;">
+                    <label>الفصل:</label>
+                    <select id="new-subject-semester">
+                        <option value="">اختياري</option>
+                        <option value="الأول">الأول</option>
+                        <option value="الثاني">الثاني</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" onclick="addSubject()">إضافة</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const teacherId = {{ teacher.id }};
+        
+        async function updateTeacher(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            try {
+                const response = await fetch(`/api/teacher/${teacherId}/update`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function addSpecialization() {
+            const specId = document.getElementById('new-spec-id').value;
+            const isPrimary = document.getElementById('new-spec-primary').value;
+            
+            if (!specId) {
+                alert('يرجى اختيار تخصص');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('specialization_id', specId);
+            formData.append('is_primary', isPrimary);
+            
+            try {
+                const response = await fetch(`/api/teacher/${teacherId}/add_specialization`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function removeSpecialization(specId) {
+            if (!confirm('هل أنت متأكد من إزالة هذا التخصص؟')) return;
+            
+            try {
+                const response = await fetch(`/api/teacher/${teacherId}/remove_specialization/${specId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function addSubject() {
+            const subjectId = document.getElementById('new-subject-id').value;
+            const year = document.getElementById('new-subject-year').value;
+            const semester = document.getElementById('new-subject-semester').value;
+            
+            if (!subjectId) {
+                alert('يرجى اختيار مادة');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('subject_id', subjectId);
+            if (year) formData.append('academic_year', year);
+            if (semester) formData.append('semester', semester);
+            
+            try {
+                const response = await fetch(`/api/teacher/${teacherId}/add_subject`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function removeSubject(subjectId) {
+            if (!confirm('هل أنت متأكد من إزالة هذه المادة؟')) return;
+            
+            try {
+                const response = await fetch(`/api/teacher/${teacherId}/remove_subject/${subjectId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+

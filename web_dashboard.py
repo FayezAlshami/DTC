@@ -10,11 +10,16 @@ from sqlalchemy import select, or_, String
 from sqlalchemy.orm import selectinload
 from jinja2 import Template
 from database.base import AsyncSessionLocal
-from database.models import User, Service, ServiceRequest, ServiceStatus, RequestStatus, Specialization
+from database.models import (
+    User, Service, ServiceRequest, ServiceStatus, RequestStatus, 
+    Specialization, Subject, UserRole, TeacherSpecialization, TeacherSubject
+)
 from repositories.service_repository import ServiceRepository
 from repositories.request_repository import ServiceRequestRepository
 from repositories.user_repository import UserRepository
 from repositories.specialization_repository import SpecializationRepository
+from repositories.subject_repository import SubjectRepository
+from repositories.teacher_repository import TeacherRepository
 from config import config
 import bcrypt
 import os
@@ -164,6 +169,19 @@ async def dashboard(
     all_users = await db.execute(select(User))
     all_users = all_users.scalars().all()
     
+    # Count by role
+    teachers_count = len([u for u in all_users if u.role == UserRole.TEACHER])
+    students_count = len([u for u in all_users if u.role == UserRole.STUDENT])
+    visitors_count = len([u for u in all_users if u.role == UserRole.VISITOR])
+    
+    # Get subjects count
+    all_subjects = await db.execute(select(Subject))
+    all_subjects = all_subjects.scalars().all()
+    
+    # Get specializations count
+    spec_repo = SpecializationRepository(db)
+    all_specs = await spec_repo.get_all_active()
+    
     stats = {
         "total_services": len(all_services),
         "pending_services": len(pending_services),
@@ -172,6 +190,11 @@ async def dashboard(
         "pending_requests": len(pending_requests),
         "published_requests": len([r for r in all_requests if str(r.status) == str(RequestStatus.PUBLISHED)]),
         "total_users": len(all_users),
+        "total_teachers": teachers_count,
+        "total_students": students_count,
+        "total_visitors": visitors_count,
+        "total_subjects": len(all_subjects),
+        "total_specializations": len(all_specs),
     }
     
     with open("templates/dashboard.html", "r", encoding="utf-8") as f:
@@ -699,6 +722,344 @@ async def delete_specialization(
     await spec_repo.deactivate(spec_id)
     
     return {"status": "success", "message": "تم حذف الاختصاص بنجاح"}
+
+
+# ==================== SUBJECTS MANAGEMENT ====================
+
+@app.get("/subjects", response_class=HTMLResponse)
+async def subjects_page(
+    request: Request,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+    spec_filter: Optional[int] = Query(None)
+):
+    """Show subjects management page."""
+    subject_repo = SubjectRepository(db)
+    spec_repo = SpecializationRepository(db)
+    
+    # Get all specializations for filter dropdown
+    all_specs = await spec_repo.get_all_active()
+    
+    # Get subjects based on filter
+    if spec_filter:
+        all_subjects = await subject_repo.get_by_specialization(spec_filter, active_only=False)
+    else:
+        all_subjects = await subject_repo.get_all(active_only=False)
+    
+    with open("templates/subjects.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+    return HTMLResponse(content=template.render(
+        session=session,
+        subjects=all_subjects,
+        specializations=all_specs,
+        spec_filter=spec_filter,
+    ))
+
+
+@app.post("/api/subject")
+async def create_subject(
+    name: str = Form(...),
+    specialization_id: int = Form(...),
+    code: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    credit_hours: Optional[int] = Form(None),
+    display_order: int = Form(0),
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Create a new subject."""
+    subject_repo = SubjectRepository(db)
+    
+    # Check if code already exists (if provided)
+    if code:
+        existing = await subject_repo.get_by_code(code.strip())
+        if existing:
+            raise HTTPException(status_code=400, detail="رمز المادة مستخدم بالفعل")
+    
+    subject = Subject(
+        name=name.strip(),
+        specialization_id=specialization_id,
+        code=code.strip() if code else None,
+        description=description.strip() if description else None,
+        credit_hours=credit_hours,
+        display_order=display_order,
+        is_active=True
+    )
+    await subject_repo.create(subject)
+    
+    return {"status": "success", "message": "تم إضافة المادة بنجاح"}
+
+
+@app.post("/api/subject/{subject_id}/update")
+async def update_subject(
+    subject_id: int,
+    name: str = Form(...),
+    specialization_id: int = Form(...),
+    code: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    credit_hours: Optional[int] = Form(None),
+    display_order: int = Form(0),
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update subject."""
+    subject_repo = SubjectRepository(db)
+    subject = await subject_repo.get_by_id(subject_id)
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="المادة غير موجودة")
+    
+    # Check if code already exists for another subject
+    if code:
+        existing = await subject_repo.get_by_code(code.strip())
+        if existing and existing.id != subject_id:
+            raise HTTPException(status_code=400, detail="رمز المادة مستخدم بالفعل")
+    
+    subject.name = name.strip()  # type: ignore
+    subject.specialization_id = specialization_id  # type: ignore
+    subject.code = code.strip() if code else None  # type: ignore
+    subject.description = description.strip() if description else None  # type: ignore
+    subject.credit_hours = credit_hours  # type: ignore
+    subject.display_order = display_order  # type: ignore
+    
+    await subject_repo.update(subject)
+    
+    return {"status": "success", "message": "تم تحديث المادة بنجاح"}
+
+
+@app.post("/api/subject/{subject_id}/toggle")
+async def toggle_subject(
+    subject_id: int,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggle subject active status."""
+    subject_repo = SubjectRepository(db)
+    subject = await subject_repo.get_by_id(subject_id)
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="المادة غير موجودة")
+    
+    if subject.is_active:
+        await subject_repo.deactivate(subject_id)
+        return {"status": "success", "message": "تم تعطيل المادة"}
+    else:
+        await subject_repo.activate(subject_id)
+        return {"status": "success", "message": "تم تفعيل المادة"}
+
+
+@app.post("/api/subject/{subject_id}/delete")
+async def delete_subject(
+    subject_id: int,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete subject."""
+    subject_repo = SubjectRepository(db)
+    subject = await subject_repo.get_by_id(subject_id)
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="المادة غير موجودة")
+    
+    # Deactivate instead of delete
+    await subject_repo.deactivate(subject_id)
+    
+    return {"status": "success", "message": "تم حذف المادة بنجاح"}
+
+
+# ==================== TEACHERS MANAGEMENT ====================
+
+@app.get("/teachers", response_class=HTMLResponse)
+async def teachers_page(
+    request: Request,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db),
+    spec_filter: Optional[int] = Query(None),
+    search: Optional[str] = Query(None)
+):
+    """Show teachers management page."""
+    teacher_repo = TeacherRepository(db)
+    spec_repo = SpecializationRepository(db)
+    
+    # Get all specializations for filter dropdown
+    all_specs = await spec_repo.get_all_active()
+    
+    # Get teachers based on filter
+    if spec_filter:
+        all_teachers = await teacher_repo.get_teachers_by_specialization(spec_filter)
+    else:
+        all_teachers = await teacher_repo.get_all_teachers(limit=100)
+    
+    # Apply search filter
+    if search:
+        search_lower = search.lower()
+        all_teachers = [
+            t for t in all_teachers 
+            if (t.full_name and search_lower in t.full_name.lower()) or
+               (t.email and search_lower in t.email.lower()) or
+               (t.teacher_number and search_lower in t.teacher_number.lower())
+        ]
+    
+    with open("templates/teachers.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+    return HTMLResponse(content=template.render(
+        session=session,
+        teachers=all_teachers,
+        specializations=all_specs,
+        spec_filter=spec_filter,
+        search_query=search or "",
+    ))
+
+
+@app.get("/teachers/{teacher_id}", response_class=HTMLResponse)
+async def teacher_detail_page(
+    teacher_id: int,
+    request: Request,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Show teacher detail page."""
+    teacher_repo = TeacherRepository(db)
+    spec_repo = SpecializationRepository(db)
+    subject_repo = SubjectRepository(db)
+    
+    teacher = await teacher_repo.get_teacher_by_id(teacher_id)
+    
+    if not teacher:
+        raise HTTPException(status_code=404, detail="الأستاذ غير موجود")
+    
+    # Get all specializations and subjects for assignment
+    all_specs = await spec_repo.get_all_active()
+    all_subjects = await subject_repo.get_all(active_only=True)
+    
+    # Get teacher's current specializations and subjects
+    teacher_specs = await teacher_repo.get_teacher_specializations(teacher_id)
+    teacher_subjects = await teacher_repo.get_teacher_subjects(teacher_id)
+    
+    with open("templates/teacher_detail.html", "r", encoding="utf-8") as f:
+        template = Template(f.read())
+    return HTMLResponse(content=template.render(
+        session=session,
+        teacher=teacher,
+        all_specs=all_specs,
+        all_subjects=all_subjects,
+        teacher_specs=teacher_specs,
+        teacher_subjects=teacher_subjects,
+    ))
+
+
+@app.post("/api/teacher/{teacher_id}/add_specialization")
+async def add_teacher_specialization(
+    teacher_id: int,
+    specialization_id: int = Form(...),
+    is_primary: bool = Form(False),
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Add specialization to teacher."""
+    teacher_repo = TeacherRepository(db)
+    
+    # Verify teacher exists
+    teacher = await teacher_repo.get_teacher_by_id(teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="الأستاذ غير موجود")
+    
+    await teacher_repo.add_specialization(teacher_id, specialization_id, is_primary)
+    
+    return {"status": "success", "message": "تم إضافة التخصص بنجاح"}
+
+
+@app.post("/api/teacher/{teacher_id}/remove_specialization/{spec_id}")
+async def remove_teacher_specialization(
+    teacher_id: int,
+    spec_id: int,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove specialization from teacher."""
+    teacher_repo = TeacherRepository(db)
+    
+    success = await teacher_repo.remove_specialization(teacher_id, spec_id)
+    
+    if success:
+        return {"status": "success", "message": "تم إزالة التخصص بنجاح"}
+    else:
+        raise HTTPException(status_code=404, detail="التخصص غير موجود للأستاذ")
+
+
+@app.post("/api/teacher/{teacher_id}/add_subject")
+async def add_teacher_subject(
+    teacher_id: int,
+    subject_id: int = Form(...),
+    academic_year: Optional[str] = Form(None),
+    semester: Optional[str] = Form(None),
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Add subject to teacher."""
+    teacher_repo = TeacherRepository(db)
+    
+    # Verify teacher exists
+    teacher = await teacher_repo.get_teacher_by_id(teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="الأستاذ غير موجود")
+    
+    await teacher_repo.add_subject(teacher_id, subject_id, academic_year, semester)
+    
+    return {"status": "success", "message": "تم إضافة المادة بنجاح"}
+
+
+@app.post("/api/teacher/{teacher_id}/remove_subject/{subject_id}")
+async def remove_teacher_subject(
+    teacher_id: int,
+    subject_id: int,
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove subject from teacher."""
+    teacher_repo = TeacherRepository(db)
+    
+    success = await teacher_repo.remove_subject(teacher_id, subject_id)
+    
+    if success:
+        return {"status": "success", "message": "تم إزالة المادة بنجاح"}
+    else:
+        raise HTTPException(status_code=404, detail="المادة غير موجودة للأستاذ")
+
+
+@app.post("/api/teacher/{teacher_id}/update")
+async def update_teacher(
+    teacher_id: int,
+    full_name: Optional[str] = Form(None),
+    teacher_number: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    phone_number: Optional[str] = Form(None),
+    session: dict = Depends(require_auth),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update teacher information."""
+    user_repo = UserRepository(db)
+    teacher = await user_repo.get_by_id(teacher_id)
+    
+    if not teacher or teacher.role != UserRole.TEACHER:
+        raise HTTPException(status_code=404, detail="الأستاذ غير موجود")
+    
+    if full_name is not None:
+        teacher.full_name = full_name.strip() if full_name.strip() else None  # type: ignore
+    if teacher_number is not None:
+        teacher.teacher_number = teacher_number.strip() if teacher_number.strip() else None  # type: ignore
+    if email is not None:
+        # Check if email already exists for another user
+        existing = await user_repo.get_by_email(email.strip())
+        if existing and existing.id != teacher_id:
+            raise HTTPException(status_code=400, detail="البريد الإلكتروني مستخدم بالفعل")
+        teacher.email = email.strip()  # type: ignore
+    if phone_number is not None:
+        teacher.phone_number = phone_number.strip() if phone_number.strip() else None  # type: ignore
+    
+    await user_repo.update(teacher)
+    
+    return {"status": "success", "message": "تم تحديث بيانات الأستاذ بنجاح"}
 
 
 if __name__ == "__main__":

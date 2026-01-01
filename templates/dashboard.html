@@ -148,8 +148,10 @@
             <a href="/services">الخدمات</a>
             <a href="/requests">الطلبات</a>
             <a href="/users">المستخدمون</a>
+            <a href="/teachers">الأساتذة</a>
             <a href="/broadcast">الإذاعة</a>
             <a href="/specializations">الاختصاصات</a>
+            <a href="/subjects">المواد</a>
         </div>
         
         <div class="stats-grid">
@@ -176,6 +178,26 @@
             <div class="stat-card">
                 <h3>إجمالي المستخدمين</h3>
                 <div class="value">{{ stats.total_users }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>👨‍🏫 الأساتذة</h3>
+                <div class="value">{{ stats.total_teachers }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>🎓 الطلاب</h3>
+                <div class="value">{{ stats.total_students }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>👤 الزوار</h3>
+                <div class="value">{{ stats.total_visitors }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>📚 المواد</h3>
+                <div class="value">{{ stats.total_subjects }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>🎯 التخصصات</h3>
+                <div class="value">{{ stats.total_specializations }}</div>
             </div>
         </div>
         
