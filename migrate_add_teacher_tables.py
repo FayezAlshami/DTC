@@ -46,6 +46,7 @@ async def create_subjects_table():
             table_exists = result.scalar()
             
             if not table_exists:
+                # Create table
                 await conn.execute(text("""
                     CREATE TABLE subjects (
                         id SERIAL PRIMARY KEY,
@@ -58,10 +59,11 @@ async def create_subjects_table():
                         display_order INTEGER NOT NULL DEFAULT 0,
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-                    );
-                    CREATE INDEX idx_subjects_name ON subjects(name);
-                    CREATE INDEX idx_subjects_specialization_id ON subjects(specialization_id);
+                    )
                 """))
+                # Create indexes separately
+                await conn.execute(text("CREATE INDEX idx_subjects_name ON subjects(name)"))
+                await conn.execute(text("CREATE INDEX idx_subjects_specialization_id ON subjects(specialization_id)"))
                 print("✅ تم إنشاء جدول subjects")
             else:
                 print("✅ جدول subjects موجود بالفعل")
@@ -86,6 +88,7 @@ async def create_teacher_specializations_table():
             table_exists = result.scalar()
             
             if not table_exists:
+                # Create table
                 await conn.execute(text("""
                     CREATE TABLE teacher_specializations (
                         id SERIAL PRIMARY KEY,
@@ -94,10 +97,11 @@ async def create_teacher_specializations_table():
                         is_primary BOOLEAN NOT NULL DEFAULT FALSE,
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         UNIQUE(teacher_id, specialization_id)
-                    );
-                    CREATE INDEX idx_teacher_specializations_teacher_id ON teacher_specializations(teacher_id);
-                    CREATE INDEX idx_teacher_specializations_specialization_id ON teacher_specializations(specialization_id);
+                    )
                 """))
+                # Create indexes separately
+                await conn.execute(text("CREATE INDEX idx_teacher_specializations_teacher_id ON teacher_specializations(teacher_id)"))
+                await conn.execute(text("CREATE INDEX idx_teacher_specializations_specialization_id ON teacher_specializations(specialization_id)"))
                 print("✅ تم إنشاء جدول teacher_specializations")
             else:
                 print("✅ جدول teacher_specializations موجود بالفعل")
@@ -122,6 +126,7 @@ async def create_teacher_subjects_table():
             table_exists = result.scalar()
             
             if not table_exists:
+                # Create table
                 await conn.execute(text("""
                     CREATE TABLE teacher_subjects (
                         id SERIAL PRIMARY KEY,
@@ -133,10 +138,11 @@ async def create_teacher_subjects_table():
                         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                         UNIQUE(teacher_id, subject_id, academic_year, semester)
-                    );
-                    CREATE INDEX idx_teacher_subjects_teacher_id ON teacher_subjects(teacher_id);
-                    CREATE INDEX idx_teacher_subjects_subject_id ON teacher_subjects(subject_id);
+                    )
                 """))
+                # Create indexes separately
+                await conn.execute(text("CREATE INDEX idx_teacher_subjects_teacher_id ON teacher_subjects(teacher_id)"))
+                await conn.execute(text("CREATE INDEX idx_teacher_subjects_subject_id ON teacher_subjects(subject_id)"))
                 print("✅ تم إنشاء جدول teacher_subjects")
             else:
                 print("✅ جدول teacher_subjects موجود بالفعل")
