@@ -9,13 +9,13 @@
 
 ### الخطوة 1: إعطاء الصلاحيات
 
-اتصل بقاعدة البيانات كمستخدم `postgres`:
+**الطريقة الأولى: استخدام TCP/IP (موصى بها)**
 
 ```bash
-psql -U postgres -d dtc
+psql -h localhost -U postgres -d dtc
 ```
 
-ثم شغّل:
+ثم أدخل كلمة مرور postgres وشغّل:
 
 ```sql
 GRANT USAGE ON SCHEMA public TO fayez;
@@ -27,10 +27,42 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO fayez;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO fayez;
 ```
 
-أو استخدم الملف:
+**الطريقة الثانية: استخدام sudo**
 
 ```bash
-psql -U postgres -d dtc -f grant_permissions.sql
+sudo -u postgres psql -d dtc
+```
+
+ثم شغّل نفس الأوامر SQL أعلاه.
+
+**الطريقة الثالثة: استخدام السكريبت**
+
+```bash
+chmod +x grant_permissions.sh
+./grant_permissions.sh
+```
+
+أو مع كلمة المرور:
+
+```bash
+./grant_permissions.sh "your_postgres_password"
+```
+
+**الطريقة الرابعة: استخدام PGPASSWORD**
+
+```bash
+PGPASSWORD="your_postgres_password" psql -h localhost -U postgres -d dtc -f grant_permissions.sql
+```
+
+**الطريقة الخامسة: استخدام Python Script (أسهل)**
+
+```bash
+# مع كلمة المرور في البيئة
+export POSTGRES_PASSWORD="your_postgres_password"
+python grant_permissions_direct.py
+
+# أو بدون export (سيطلب منك إدخالها)
+python grant_permissions_direct.py
 ```
 
 ### الخطوة 2: إعادة تشغيل Migrations

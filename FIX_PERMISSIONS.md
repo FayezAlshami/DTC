@@ -8,8 +8,21 @@
 ### الطريقة الأولى: استخدام psql (موصى بها)
 
 1. **اتصل بقاعدة البيانات كمستخدم postgres (superuser):**
+
+   **إذا واجهت خطأ Peer authentication:**
    ```bash
-   psql -U postgres -d dtc
+   # استخدم TCP/IP بدلاً من Unix socket
+   psql -h localhost -U postgres -d dtc
+   ```
+   
+   **أو استخدم sudo:**
+   ```bash
+   sudo -u postgres psql -d dtc
+   ```
+   
+   **أو استخدم PGPASSWORD:**
+   ```bash
+   PGPASSWORD="your_password" psql -h localhost -U postgres -d dtc
    ```
 
 2. **شغّل الأوامر التالية:**
