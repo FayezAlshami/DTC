@@ -1,0 +1,233 @@
+"""Student handler for e-learning features."""
+from aiogram import Router, F, Bot
+from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.fsm.context import FSMContext
+from handlers.keyboards import get_e_learning_keyboard, get_main_menu_keyboard
+from handlers.common import require_auth, require_student
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+from database.models import User, Subject, TeacherSubject, Lecture, Specialization
+from repositories.subject_repository import SubjectRepository
+from repositories.teacher_repository import TeacherRepository
+from typing import List
+
+router = Router()
+
+
+@router.message(F.text == "🎓 التعلّم الإلكتروني")
+@require_auth
+@require_student
+async def show_e_learning_menu(message: Message, user: User):
+    """Show e-learning menu for students."""
+    await message.answer(
+        "🎓 <b>التعلّم الإلكتروني</b>\n\n"
+        "اختر الخيار المطلوب:",
+        parse_mode="HTML",
+        reply_markup=get_e_learning_keyboard()
+    )
+
+
+@router.message(F.text == "📚 محاضرات")
+@require_auth
+@require_student
+async def show_lectures_menu(message: Message, state: FSMContext, db_session: AsyncSession, user: User, bot: Bot):
+    """Show student's specialization subjects for lecture selection."""
+    # Check if student has specialization
+    if not user.specialization_id:
+        await message.answer(
+            "❌ لم يتم تحديد التخصص الخاص بك.\n\n"
+            "يرجى إكمال ملفك الشخصي أولاً.",
+            reply_markup=get_e_learning_keyboard()
+        )
+        return
+    
+    # Get student's specialization
+    from repositories.specialization_repository import SpecializationRepository
+    spec_repo = SpecializationRepository(db_session)
+    specialization = await spec_repo.get_by_id(user.specialization_id)
+    
+    if not specialization:
+        await message.answer(
+            "❌ التخصص الخاص بك غير موجود في النظام.",
+            reply_markup=get_e_learning_keyboard()
+        )
+        return
+    
+    # Get all active subjects for this specialization
+    subject_repo = SubjectRepository(db_session)
+    subjects = await subject_repo.get_by_specialization(user.specialization_id, active_only=True)
+    
+    if not subjects:
+        await message.answer(
+            f"❌ لا توجد مواد دراسية متاحة لتخصص <b>{specialization.name}</b>.",
+            parse_mode="HTML",
+            reply_markup=get_e_learning_keyboard()
+        )
+        return
+    
+    # Build inline keyboard with subjects
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    from aiogram.types import InlineKeyboardButton
+    
+    builder = InlineKeyboardBuilder()
+    
+    for subject in subjects:
+        subject_name = subject.name
+        if subject.code:
+            subject_name = f"{subject_name} ({subject.code})"
+        
+        builder.add(InlineKeyboardButton(
+            text=subject_name,
+            callback_data=f"student_lecture_subject:{subject.id}"
+        ))
+    
+    builder.adjust(1)
+    
+    await message.answer(
+        f"📚 <b>اختر المادة الدراسية:</b>\n\n"
+        f"التخصص: <b>{specialization.name}</b>\n\n"
+        "اختر المادة التي تريد عرض محاضراتها:",
+        parse_mode="HTML",
+        reply_markup=builder.as_markup()
+    )
+
+
+@router.callback_query(F.data.startswith("student_lecture_subject:"))
+async def show_lectures_for_subject(callback: CallbackQuery, bot: Bot, db_session: AsyncSession, user: User):
+    """Show lectures for selected subject."""
+    subject_id = int(callback.data.split(":")[1])
+    
+    # Verify subject belongs to student's specialization
+    if not user.specialization_id:
+        await callback.answer("❌ لم يتم تحديد التخصص الخاص بك.", show_alert=True)
+        return
+    
+    subject_repo = SubjectRepository(db_session)
+    subject = await subject_repo.get_by_id(subject_id)
+    
+    if not subject or subject.specialization_id != user.specialization_id:
+        await callback.answer("❌ هذه المادة غير متاحة لك.", show_alert=True)
+        return
+    
+    # Get all teacher_subjects for this subject
+    result = await db_session.execute(
+        select(TeacherSubject)
+        .where(TeacherSubject.subject_id == subject_id)
+        .where(TeacherSubject.is_active == True)
+        .options(selectinload(TeacherSubject.lectures))
+    )
+    teacher_subjects = result.scalars().all()
+    
+    # Collect all lectures from all teachers for this subject
+    all_lectures: List[Lecture] = []
+    for teacher_subject in teacher_subjects:
+        # Get lectures ordered by display_order
+        lectures_result = await db_session.execute(
+            select(Lecture)
+            .where(Lecture.teacher_subject_id == teacher_subject.id)
+            .order_by(Lecture.display_order.asc())
+        )
+        lectures = lectures_result.scalars().all()
+        all_lectures.extend(lectures)
+    
+    if not all_lectures:
+        await callback.message.edit_text(
+            f"❌ <b>لا توجد محاضرات متاحة</b>\n\n"
+            f"المادة: <b>{subject.name}</b>\n\n"
+            "لم يتم رفع أي محاضرات لهذه المادة بعد.",
+            parse_mode="HTML"
+        )
+        await callback.answer()
+        return
+    
+    # Send subject info
+    subject_info = f"📚 <b>{subject.name}</b>"
+    if subject.code:
+        subject_info += f" ({subject.code})"
+    subject_info += f"\n\n📁 عدد المحاضرات: <b>{len(all_lectures)}</b> ملف\n\n"
+    
+    await callback.message.edit_text(
+        subject_info + "⏳ جاري إرسال المحاضرات...",
+        parse_mode="HTML"
+    )
+    await callback.answer()
+    
+    # Send all lecture files
+    sent_count = 0
+    for idx, lecture in enumerate(all_lectures, 1):
+        try:
+            # Send file based on type
+            if lecture.file_type == "document":
+                await bot.send_document(
+                    chat_id=user.telegram_id,
+                    document=lecture.file_id,
+                    caption=f"📄 المحاضرة {idx}/{len(all_lectures)}" + (f" - {lecture.file_name}" if lecture.file_name else "")
+                )
+            elif lecture.file_type == "photo":
+                await bot.send_photo(
+                    chat_id=user.telegram_id,
+                    photo=lecture.file_id,
+                    caption=f"🖼️ المحاضرة {idx}/{len(all_lectures)}"
+                )
+            elif lecture.file_type == "video":
+                await bot.send_video(
+                    chat_id=user.telegram_id,
+                    video=lecture.file_id,
+                    caption=f"🎥 المحاضرة {idx}/{len(all_lectures)}"
+                )
+            elif lecture.file_type == "audio":
+                await bot.send_audio(
+                    chat_id=user.telegram_id,
+                    audio=lecture.file_id,
+                    caption=f"🎵 المحاضرة {idx}/{len(all_lectures)}"
+                )
+            elif lecture.file_type == "voice":
+                await bot.send_voice(
+                    chat_id=user.telegram_id,
+                    voice=lecture.file_id,
+                    caption=f"🎤 المحاضرة {idx}/{len(all_lectures)}"
+                )
+            elif lecture.file_type == "video_note":
+                await bot.send_video_note(
+                    chat_id=user.telegram_id,
+                    video_note=lecture.file_id
+                )
+            else:
+                # Fallback: send as document
+                await bot.send_document(
+                    chat_id=user.telegram_id,
+                    document=lecture.file_id,
+                    caption=f"📄 المحاضرة {idx}/{len(all_lectures)}"
+                )
+            
+            sent_count += 1
+            
+            # Small delay to avoid rate limiting
+            import asyncio
+            await asyncio.sleep(0.5)
+            
+        except Exception as e:
+            # Log error but continue sending other files
+            print(f"Error sending lecture {lecture.id}: {e}")
+            continue
+    
+    # Send completion message
+    if sent_count > 0:
+        await bot.send_message(
+            chat_id=user.telegram_id,
+            text=f"✅ <b>تم إرسال {sent_count} من {len(all_lectures)} محاضرة</b>\n\n"
+                 "يمكنك اختيار مادة أخرى أو العودة للقائمة.",
+            parse_mode="HTML",
+            reply_markup=get_e_learning_keyboard()
+        )
+    else:
+        await bot.send_message(
+            chat_id=user.telegram_id,
+            text="❌ حدث خطأ أثناء إرسال المحاضرات.\n\n"
+                 "يرجى المحاولة مرة أخرى لاحقاً.",
+            reply_markup=get_e_learning_keyboard()
+        )
+
+
+

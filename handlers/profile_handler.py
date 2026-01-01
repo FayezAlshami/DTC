@@ -103,7 +103,7 @@ async def process_full_name(message: Message, state: FSMContext, db_session: Asy
     
     if message.text == "إلغاء":
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     full_name = message.text.strip()
@@ -131,7 +131,7 @@ async def process_student_choice(message: Message, state: FSMContext, db_session
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     if message.text.lower() in ["yes", "y", "نعم"]:
@@ -154,7 +154,7 @@ async def process_student_id(message: Message, state: FSMContext, db_session: As
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     student_id = message.text.strip()
@@ -275,7 +275,7 @@ async def process_phone(message: Message, state: FSMContext, db_session: AsyncSe
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     phone: Optional[str] = None
@@ -301,7 +301,7 @@ async def process_dob(message: Message, state: FSMContext, db_session: AsyncSess
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     dob: Optional[datetime] = None
@@ -331,7 +331,7 @@ async def process_gender(message: Message, state: FSMContext, db_session: AsyncS
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed)))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
         return
 
     gender: Optional[Gender] = None
@@ -394,7 +394,7 @@ async def process_gender(message: Message, state: FSMContext, db_session: AsyncS
         await message.answer(
             "✅ تم إكمال ملفك الشخصي بنجاح!\n\n"
             "يمكنك الآن استخدام جميع ميزات البوت.",
-            reply_markup=get_main_menu_keyboard(True)
+            reply_markup=get_main_menu_keyboard(True, user.role.value)
         )
         
     except Exception as e:
@@ -586,7 +586,7 @@ async def process_contact_url(message: Message, state: FSMContext, db_session: A
         f"✅ تم إضافة حساب {platform} بنجاح!\n\n"
         f"المستخدم: {username or 'غير محدد'}\n"
         f"الرابط: {url or 'غير محدد'}",
-        reply_markup=get_main_menu_keyboard(bool(user.profile_completed))
+        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value)
     )
 
 

@@ -12,20 +12,41 @@ def get_start_keyboard() -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_main_menu_keyboard(profile_completed: bool = False) -> ReplyKeyboardMarkup:
-    """Get main menu keyboard."""
+def get_main_menu_keyboard(profile_completed: bool = False, user_role: str = "USER") -> ReplyKeyboardMarkup:
+    """Get main menu keyboard based on user role.
+    
+    Args:
+        profile_completed: Whether user has completed their profile
+        user_role: User role - "VISITOR", "STUDENT", "TEACHER", "ADMIN", "USER"
+    """
     builder = ReplyKeyboardBuilder()
     
+    # Common for all roles
     builder.add(KeyboardButton(text="💼 الوظائف"))
-    builder.add(KeyboardButton(text="🎓 التعلّم الإلكتروني"))
+    
+    # E-Learning - only for STUDENT, TEACHER, ADMIN (not VISITOR)
+    if user_role in ("STUDENT", "TEACHER", "ADMIN"):
+        builder.add(KeyboardButton(text="🎓 التعلّم الإلكتروني"))
+    
+    # Social media - for all
     builder.add(KeyboardButton(text="📱 التواصل الاجتماعي"))
-    builder.add(KeyboardButton(text="🕘 السجل"))
+    
+    # Yearly comparisons - for all
+    builder.add(KeyboardButton(text="📊 مفاضلات العام"))
+    
+    # Teacher control panel - only for TEACHER
+    if user_role == "TEACHER":
+        builder.add(KeyboardButton(text="👨‍🏫 لوحة الأستاذ"))
+    
+    # Settings - for all
     builder.add(KeyboardButton(text="⚙️ الإعدادات"))
     
+    # Profile button
     if profile_completed:
         builder.add(KeyboardButton(text="عرض ملفك الشخصي"))
     else:
         builder.add(KeyboardButton(text="إكمال ملفك الشخصي"))
+    
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
 
@@ -248,3 +269,51 @@ def get_subjects_keyboard(subjects: list[tuple[int, str]], selected_ids: list[in
     builder.row(*row_buttons)
     
     return builder.as_markup()
+
+
+def get_social_media_keyboard() -> InlineKeyboardMarkup:
+    """Get social media links keyboard."""
+    builder = InlineKeyboardBuilder()
+    
+    # LinkedIn
+    builder.add(InlineKeyboardButton(
+        text="💼 LinkedIn",
+        url="https://www.linkedin.com/company/damascus-training-center-dtc"
+    ))
+    
+    # Facebook
+    builder.add(InlineKeyboardButton(
+        text="📘 Facebook",
+        url="https://www.facebook.com/DTC.UNRWA/"
+    ))
+    
+    # UNRWA Official
+    builder.add(InlineKeyboardButton(
+        text="🌐 UNRWA Official",
+        url="https://www.unrwa.org/newsroom/features/empowering-futures-unrwa%E2%80%99s-damascus-training-centre-links-skills-opportunity"
+    ))
+    
+    builder.adjust(2, 1)  # First row: 2 buttons, Second row: 1 button
+    
+    return builder.as_markup()
+
+
+def get_teacher_panel_keyboard() -> ReplyKeyboardMarkup:
+    """Get teacher control panel keyboard."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="📤 رفع محاضرات"))
+    builder.add(KeyboardButton(text="📝 رفع وظائف"))
+    builder.add(KeyboardButton(text="📥 تنزيل وظائف الطلاب"))
+    builder.add(KeyboardButton(text="🔙 العودة للقائمة الرئيسية"))
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_e_learning_keyboard() -> ReplyKeyboardMarkup:
+    """Get e-learning menu keyboard for students."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="📚 محاضرات"))
+    builder.add(KeyboardButton(text="📝 وظائف"))
+    builder.add(KeyboardButton(text="🔙 العودة للقائمة الرئيسية"))
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)

@@ -287,3 +287,24 @@ class TeacherSubject(Base):
     # Relationships
     teacher = relationship("User", back_populates="teacher_subjects")
     subject = relationship("Subject", back_populates="teachers")
+    lectures = relationship("Lecture", back_populates="teacher_subject", cascade="all, delete-orphan")
+
+
+class Lecture(Base):
+    """Lecture model - محاضرة مرتبطة بمادة وأستاذ."""
+    __tablename__ = "lectures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    teacher_subject_id = Column(Integer, ForeignKey("teacher_subjects.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=True)  # عنوان المحاضرة (اختياري)
+    description = Column(Text, nullable=True)  # وصف المحاضرة (اختياري)
+    file_id = Column(String(500), nullable=False)  # Telegram file_id
+    file_type = Column(String(50), nullable=False)  # document, photo, video, audio, voice, video_note
+    file_name = Column(String(500), nullable=True)  # اسم الملف الأصلي
+    file_size = Column(Integer, nullable=True)  # حجم الملف بالبايت
+    display_order = Column(Integer, default=0, nullable=False)  # ترتيب الملف في المحاضرة
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    teacher_subject = relationship("TeacherSubject", back_populates="lectures")

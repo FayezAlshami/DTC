@@ -90,10 +90,15 @@ def require_student(handler):
     async def wrapper(*args, **kwargs):
         user: Optional[User] = kwargs.get("user")
         
-        if user is None or not bool(user.is_student):
+        if user is None or user.role != UserRole.STUDENT:
             message = args[0] if args and isinstance(args[0], (Message, CallbackQuery)) else kwargs.get("message")
-            if message:
-                await message.answer("هذه الميزة متاحة للطلاب فقط.")
+            callback = args[0] if args and isinstance(args[0], CallbackQuery) else kwargs.get("callback")
+            
+            if callback:
+                await callback.answer("هذه الميزة متاحة للطلاب فقط.", show_alert=True)
+                return
+            elif message:
+                await message.answer("❌ هذه الميزة متاحة للطلاب فقط.")
             return
         
         return await handler(*args, **kwargs)
@@ -111,6 +116,28 @@ def require_admin(handler):
             message = args[0] if args and isinstance(args[0], (Message, CallbackQuery)) else kwargs.get("message")
             if message:
                 await message.answer("هذه الميزة متاحة للمديرين فقط.")
+            return
+        
+        return await handler(*args, **kwargs)
+    
+    return wrapper
+
+
+def require_teacher(handler):
+    """Decorator to require teacher role."""
+    @wraps(handler)
+    async def wrapper(*args, **kwargs):
+        user: Optional[User] = kwargs.get("user")
+        
+        if user is None or user.role != UserRole.TEACHER:
+            message = args[0] if args and isinstance(args[0], (Message, CallbackQuery)) else kwargs.get("message")
+            callback = args[0] if args and isinstance(args[0], CallbackQuery) else kwargs.get("callback")
+            
+            if callback:
+                await callback.answer("هذه الميزة متاحة للأساتذة فقط.", show_alert=True)
+                return
+            elif message:
+                await message.answer("❌ هذه الميزة متاحة للأساتذة فقط.")
             return
         
         return await handler(*args, **kwargs)

@@ -76,7 +76,7 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
         # User is already logged in and verified
         await message.answer(
             "مرحباً بعودتك! اختر خياراً من القائمة:",
-            reply_markup=get_main_menu_keyboard(user.profile_completed)
+            reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value)
         )
         await state.clear()
     else:
@@ -345,7 +345,7 @@ async def process_student_number(message: Message, state: FSMContext):
     
     await state.update_data(student_number=student_number)
     await message.answer(
-        "يرجى إدخال تاريخ ميلادك (صيغة YYYY-MM-DD):",
+        "يرجى إدخال تاريخ ميلادك (صيغة YYYY-MM-DD): أو يمكنك ارسال 'تخطي'",
         reply_markup=get_skip_keyboard()
     )
     await state.set_state(RegistrationStates.waiting_for_student_dob)
@@ -419,7 +419,7 @@ async def process_student_gender(message: Message, state: FSMContext, db_session
         f"• رقم الطالب: {user.student_id}\n"
         f"• الجنس: {'ذكر' if gender == Gender.MALE else 'أنثى'}\n\n"
         "مرحباً بك في بوت DTC Job!",
-        reply_markup=get_main_menu_keyboard(True)
+        reply_markup=get_main_menu_keyboard(True, "STUDENT")
     )
     await state.clear()
 
@@ -516,7 +516,7 @@ async def process_teacher_number(message: Message, state: FSMContext):
     
     await state.update_data(teacher_number=teacher_number)
     await message.answer(
-        "يرجى إدخال تاريخ ميلادك (صيغة YYYY-MM-DD):",
+        "يرجى إدخال تاريخ ميلادك (صيغة YYYY-MM-DD): أو يمكنك ارسال 'تخطي'",
         reply_markup=get_skip_keyboard()
     )
     await state.set_state(RegistrationStates.waiting_for_teacher_dob)
@@ -687,7 +687,7 @@ async def complete_teacher_registration(message: Message, state: FSMContext, db_
     
     summary += "\nمرحباً بك في بوت DTC Job!"
     
-    await message.answer(summary, reply_markup=get_main_menu_keyboard(True))
+    await message.answer(summary, reply_markup=get_main_menu_keyboard(True, "TEACHER"))
     await state.clear()
 
 
@@ -762,7 +762,7 @@ async def process_visitor_gender(message: Message, state: FSMContext, db_session
         f"• رقم الزائر: {user.visitor_number}\n"
         f"• الجنس: {'ذكر' if gender == Gender.MALE else 'أنثى'}\n\n"
         "مرحباً بك في بوت DTC Job!",
-        reply_markup=get_main_menu_keyboard(True)
+        reply_markup=get_main_menu_keyboard(True, "VISITOR")
     )
     await state.clear()
 
@@ -874,6 +874,6 @@ async def process_login_password(message: Message, state: FSMContext, db_session
     
     await message.answer(
         f"✅ تم تسجيل الدخول بنجاح! مرحباً بعودتك، {user.full_name or 'المستخدم'}!",
-        reply_markup=get_main_menu_keyboard(user.profile_completed)
+        reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value)
     )
     await state.clear()

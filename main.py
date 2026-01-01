@@ -12,6 +12,8 @@ from handlers.request_handler import router as request_router
 from handlers.browse_handler import router as browse_router
 from handlers.records_handler import router as records_router
 from handlers.admin_handler import router as admin_router
+from handlers.teacher_handler import router as teacher_router
+from handlers.student_handler import router as student_router
 from handlers.common import DatabaseMiddleware, UserMiddleware
 
 # Configure logging
@@ -47,6 +49,8 @@ async def main():
     dp.include_router(browse_router)
     dp.include_router(records_router)
     dp.include_router(admin_router)
+    dp.include_router(teacher_router)
+    dp.include_router(student_router)
     
     logger.info("Bot starting...")
     
