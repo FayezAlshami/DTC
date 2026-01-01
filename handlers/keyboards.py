@@ -167,3 +167,84 @@ def get_verification_retry_keyboard() -> ReplyKeyboardMarkup:
     builder.add(KeyboardButton(text="إعادة إدخال عنوان البريد الإلكتروني"))
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
+
+
+def get_role_selection_keyboard() -> ReplyKeyboardMarkup:
+    """Get keyboard for role selection during registration."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="🎓 طالب"))
+    builder.add(KeyboardButton(text="👨‍🏫 أستاذ"))
+    builder.add(KeyboardButton(text="👤 زائر"))
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_gender_keyboard() -> ReplyKeyboardMarkup:
+    """Get keyboard for gender selection."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="ذكر"))
+    builder.add(KeyboardButton(text="أنثى"))
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_skip_keyboard() -> ReplyKeyboardMarkup:
+    """Get keyboard with skip option."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text="تخطي"))
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_single_specialization_keyboard(specs: list[tuple[int, str]]) -> InlineKeyboardMarkup:
+    """Get specialization selection keyboard for single selection (students)."""
+    builder = InlineKeyboardBuilder()
+    for spec_id, spec_name in specs:
+        builder.add(InlineKeyboardButton(text=spec_name, callback_data=f"reg_spec:{spec_id}"))
+    builder.adjust(2)
+    return builder.as_markup()
+
+
+def get_multi_specialization_keyboard(specs: list[tuple[int, str]], selected_ids: list[int] = None) -> InlineKeyboardMarkup:
+    """Get specialization selection keyboard for multiple selection (teachers)."""
+    selected_ids = selected_ids or []
+    builder = InlineKeyboardBuilder()
+    
+    for spec_id, spec_name in specs:
+        if spec_id in selected_ids:
+            text = f"✅ {spec_name}"
+        else:
+            text = spec_name
+        builder.add(InlineKeyboardButton(text=text, callback_data=f"reg_multi_spec:{spec_id}"))
+    
+    builder.adjust(2)
+    
+    # Add confirm button if at least one selected
+    if selected_ids:
+        builder.row(InlineKeyboardButton(text="✓ تأكيد الاختيار", callback_data="reg_spec_confirm"))
+    
+    return builder.as_markup()
+
+
+def get_subjects_keyboard(subjects: list[tuple[int, str]], selected_ids: list[int] = None) -> InlineKeyboardMarkup:
+    """Get subjects selection keyboard for teachers (multiple selection)."""
+    selected_ids = selected_ids or []
+    builder = InlineKeyboardBuilder()
+    
+    for subject_id, subject_name in subjects:
+        if subject_id in selected_ids:
+            text = f"✅ {subject_name}"
+        else:
+            text = subject_name
+        builder.add(InlineKeyboardButton(text=text, callback_data=f"reg_subject:{subject_id}"))
+    
+    builder.adjust(2)
+    
+    # Add confirm and skip buttons
+    row_buttons = []
+    if selected_ids:
+        row_buttons.append(InlineKeyboardButton(text="✓ تأكيد الاختيار", callback_data="reg_subjects_confirm"))
+    row_buttons.append(InlineKeyboardButton(text="تخطي", callback_data="reg_subjects_skip"))
+    builder.row(*row_buttons)
+    
+    return builder.as_markup()

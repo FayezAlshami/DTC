@@ -1,9 +1,9 @@
 """Subject repository."""
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, exists, and_
 from sqlalchemy.orm import selectinload
-from database.models import Subject, Specialization
+from database.models import Subject, Specialization, TeacherSubject
 
 
 class SubjectRepository:
@@ -83,4 +83,61 @@ class SubjectRepository:
         )
         await self.session.commit()
         return result.rowcount > 0
+    
+    async def get_unassigned_subjects_by_specialization(
+        self, 
+        specialization_id: int, 
+        active_only: bool = True
+    ) -> List[Subject]:
+        """Get subjects for a specialization that don't have a teacher assigned."""
+        # Subquery to find subjects that have at least one active teacher assignment
+        assigned_subjects_subquery = (
+            select(TeacherSubject.subject_id)
+            .where(TeacherSubject.is_active == True)
+            .distinct()
+        )
+        
+        query = (
+            select(Subject)
+            .where(
+                Subject.specialization_id == specialization_id,
+                ~Subject.id.in_(assigned_subjects_subquery)
+            )
+        )
+        
+        if active_only:
+            query = query.where(Subject.is_active == True)
+        
+        query = query.order_by(Subject.display_order.asc(), Subject.name.asc())
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_unassigned_subjects_by_specializations(
+        self, 
+        specialization_ids: List[int], 
+        active_only: bool = True
+    ) -> List[Subject]:
+        """Get subjects for multiple specializations that don't have a teacher assigned."""
+        # Subquery to find subjects that have at least one active teacher assignment
+        assigned_subjects_subquery = (
+            select(TeacherSubject.subject_id)
+            .where(TeacherSubject.is_active == True)
+            .distinct()
+        )
+        
+        query = (
+            select(Subject)
+            .options(selectinload(Subject.specialization))
+            .where(
+                Subject.specialization_id.in_(specialization_ids),
+                ~Subject.id.in_(assigned_subjects_subquery)
+            )
+        )
+        
+        if active_only:
+            query = query.where(Subject.is_active == True)
+        
+        query = query.order_by(Subject.specialization_id, Subject.display_order.asc(), Subject.name.asc())
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 

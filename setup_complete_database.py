@@ -16,6 +16,7 @@ MIGRATIONS = [
     ("migrate_contact_accounts.py", "إنشاء جدول حسابات التواصل"),
     ("migrate_add_email_verified.py", "إضافة عمود email_verified"),
     ("migrate_add_teacher_tables.py", "إضافة نظام الأساتذة والمواد"),
+    ("migrate_registration_flow.py", "تحديث نظام التسجيل (VISITOR role + أعمدة جديدة)"),
     ("migrate_enum_data.py", "تحديث بيانات enum"),
 ]
 

@@ -16,6 +16,7 @@ class UserRole(PyEnum):
     ADMIN = "ADMIN"
     TEACHER = "TEACHER"
     STUDENT = "STUDENT"
+    VISITOR = "VISITOR"
     USER = "USER"
 
 
@@ -72,8 +73,11 @@ class User(Base):
 
     # Profile fields
     full_name = Column(String(255), nullable=True)
-    student_id = Column(String(100), nullable=True)
+    student_id = Column(String(100), nullable=True)  # رقم الطالب
+    teacher_number = Column(String(100), nullable=True)  # رقم الأستاذ
+    visitor_number = Column(String(100), nullable=True)  # رقم الزائر
     specialization = Column(String(255), nullable=True)
+    specialization_id = Column(Integer, ForeignKey("specializations.id"), nullable=True)  # FK للاختصاص
     phone_number = Column(String(50), nullable=True)
     date_of_birth = Column(DateTime, nullable=True)
     gender = Column(SQLEnum(Gender), nullable=True)
