@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الطلبات - DTC Job Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header .logo-container img {
+            height: 50px;
+            width: auto;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-menu a {
+            padding: 10px 20px;
+            background: white;
+            text-decoration: none;
+            color: #0066CC;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-menu a:hover, .nav-menu a.active {
+            background: #0066CC;
+            color: white;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+        .item-meta {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .badge-pending {
+            background: #ffc107;
+            color: #000;
+        }
+        .badge-published {
+            background: #28a745;
+            color: white;
+        }
+        .badge-rejected {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-draft {
+            background: #6c757d;
+            color: white;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>📥 إدارة الطلبات</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests" class="active">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+        </div>
+        
+        <div class="section">
+            <h2>جميع الطلبات</h2>
+            {% if requests %}
+                {% for request in requests %}
+                <div class="item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-title">{{ request.title }}</div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ request.status.value }}">{{ request.status.value }}</span>
+                                من: {{ request.requester.full_name or request.requester.email }}
+                                | التاريخ: {{ request.created_at.strftime('%Y-%m-%d %H:%M') if request.created_at else 'غير متاح' }}
+                            </div>
+                            <div class="item-meta" style="margin-top: 10px;">
+                                {{ request.description[:200] }}{% if request.description|length > 200 %}...{% endif %}
+                            </div>
+                            <div class="item-meta" style="margin-top: 5px;">
+                                التخصصات: {{ request.allowed_specializations|join(', ') }}
+                            </div>
+                        </div>
+                        {% if request.status.value == 'pending' %}
+                        <div class="actions">
+                            <button class="btn btn-approve" onclick="approveRequest({{ request.id }})">✅ قبول</button>
+                            <button class="btn btn-reject" onclick="rejectRequest({{ request.id }})">❌ رفض</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>لا توجد طلبات</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        async function approveRequest(id) {
+            if (confirm('هل أنت متأكد من قبول هذا الطلب؟')) {
+                const response = await fetch(`/api/approve_request/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('تم قبول الطلب بنجاح');
+                    location.reload();
+                } else {
+                    alert('حدث خطأ أثناء قبول الطلب');
+                }
+            }
+        }
+        
+        async function rejectRequest(id) {
+            if (confirm('هل أنت متأكد من رفض هذا الطلب؟')) {
+                const response = await fetch(`/api/reject_request/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('تم رفض الطلب بنجاح');
+                    location.reload();
+                } else {
+                    alert('حدث خطأ أثناء رفض الطلب');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

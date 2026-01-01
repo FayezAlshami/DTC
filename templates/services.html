@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الخدمات - DTC Job Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header .logo-container img {
+            height: 50px;
+            width: auto;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-menu a {
+            padding: 10px 20px;
+            background: white;
+            text-decoration: none;
+            color: #0066CC;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-menu a:hover, .nav-menu a.active {
+            background: #0066CC;
+            color: white;
+        }
+        .filters-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .filters-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-group label {
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #0066CC;
+        }
+        .filter-btn {
+            padding: 12px 24px;
+            background: #0066CC;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            height: fit-content;
+        }
+        .filter-btn:hover {
+            background: #004499;
+        }
+        .clear-filter-btn {
+            padding: 12px 24px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            height: fit-content;
+        }
+        .clear-filter-btn:hover {
+            background: #5a6268;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+        .item-meta {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .badge-pending {
+            background: #ffc107;
+            color: #000;
+        }
+        .badge-published {
+            background: #28a745;
+            color: white;
+        }
+        .badge-rejected {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-draft {
+            background: #6c757d;
+            color: white;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>📤 إدارة الخدمات</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services" class="active">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+        </div>
+        
+        <div class="filters-container">
+            <h2 style="margin-bottom: 15px;">🔍 فلترة الخدمات</h2>
+            <form class="filters-form" method="GET" action="/services">
+                <div class="filter-group">
+                    <label for="status_filter">حالة الخدمة:</label>
+                    <select id="status_filter" name="status_filter">
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>جميع الحالات</option>
+                        <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>في الانتظار</option>
+                        <option value="PUBLISHED" {% if status_filter == 'PUBLISHED' %}selected{% endif %}>منشورة</option>
+                        <option value="REJECTED" {% if status_filter == 'REJECTED' %}selected{% endif %}>مرفوضة</option>
+                        <option value="DRAFT" {% if status_filter == 'DRAFT' %}selected{% endif %}>مسودة</option>
+                        <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>مكتملة</option>
+                        <option value="EXPIRED" {% if status_filter == 'EXPIRED' %}selected{% endif %}>منتهية</option>
+                        <option value="REMOVED" {% if status_filter == 'REMOVED' %}selected{% endif %}>محذوفة</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="specialization_filter">التخصص:</label>
+                    <select id="specialization_filter" name="specialization_filter">
+                        <option value="all" {% if specialization_filter == 'all' %}selected{% endif %}>جميع التخصصات</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec }}" {% if specialization_filter == spec %}selected{% endif %}>{{ spec }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="filter-btn">تطبيق الفلترة</button>
+                {% if status_filter != 'all' or specialization_filter != 'all' %}
+                <a href="/services" class="clear-filter-btn" style="text-decoration: none; display: inline-block;">مسح الفلاتر</a>
+                {% endif %}
+            </form>
+            {% if status_filter != 'all' or specialization_filter != 'all' %}
+            <p style="margin-top: 15px; color: #666;">
+                الفلاتر النشطة:
+                {% if status_filter != 'all' %}
+                <span style="background: #e7f3ff; padding: 4px 8px; border-radius: 4px; margin: 0 5px;">
+                    الحالة: {{ status_filter }}
+                </span>
+                {% endif %}
+                {% if specialization_filter != 'all' %}
+                <span style="background: #e7f3ff; padding: 4px 8px; border-radius: 4px; margin: 0 5px;">
+                    التخصص: {{ specialization_filter }}
+                </span>
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h2>جميع الخدمات ({{ services|length }})</h2>
+            {% if services %}
+                {% for service in services %}
+                <div class="item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-title">{{ service.title }}</div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ service.status.value }}">{{ service.status.value }}</span>
+                                من: {{ service.provider.full_name or service.provider.email }}
+                                | التخصص: {{ service.specialization }}
+                                | التاريخ: {{ service.created_at.strftime('%Y-%m-%d %H:%M') if service.created_at else 'غير متاح' }}
+                            </div>
+                            <div class="item-meta" style="margin-top: 10px;">
+                                {{ service.description[:200] }}{% if service.description|length > 200 %}...{% endif %}
+                            </div>
+                        </div>
+                        {% if service.status.value == 'pending' %}
+                        <div class="actions">
+                            <button class="btn btn-approve" onclick="approveService({{ service.id }})">✅ قبول</button>
+                            <button class="btn btn-reject" onclick="rejectService({{ service.id }})">❌ رفض</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>لا توجد خدمات</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        async function approveService(id) {
+            if (confirm('هل أنت متأكد من قبول هذه الخدمة؟')) {
+                const response = await fetch(`/api/approve_service/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('تم قبول الخدمة بنجاح');
+                    location.reload();
+                } else {
+                    alert('حدث خطأ أثناء قبول الخدمة');
+                }
+            }
+        }
+        
+        async function rejectService(id) {
+            if (confirm('هل أنت متأكد من رفض هذه الخدمة؟')) {
+                const response = await fetch(`/api/reject_service/${id}`, { method: 'POST' });
+                if (response.ok) {
+                    alert('تم رفض الخدمة بنجاح');
+                    location.reload();
+                } else {
+                    alert('حدث خطأ أثناء رفض الخدمة');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

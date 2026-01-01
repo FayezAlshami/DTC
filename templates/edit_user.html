@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل المستخدم - DTC Job Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header .logo-container img {
+            height: 50px;
+            width: auto;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .nav-menu a {
+            padding: 10px 20px;
+            background: white;
+            text-decoration: none;
+            color: #0066CC;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-menu a:hover, .nav-menu a.active {
+            background: #0066CC;
+            color: white;
+        }
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #0066CC;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #0066CC;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #004499;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>✏️ تعديل المستخدم</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users">المستخدمون</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+        </div>
+        
+        <div id="alert-container"></div>
+        
+        <div class="section">
+            <h2 style="margin-bottom: 20px;">تعديل معلومات المستخدم</h2>
+            <form id="edit-user-form" onsubmit="updateUser(event)">
+                <input type="hidden" id="user_id" value="{{ user.id }}">
+                
+                <div class="form-group">
+                    <label for="full_name">الاسم الكامل:</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ user.full_name or '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">البريد الإلكتروني:</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone_number">رقم الهاتف:</label>
+                    <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number or '' }}">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="student_id">رقم الطالب:</label>
+                        <input type="text" id="student_id" name="student_id" value="{{ user.student_id or '' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="specialization">التخصص:</label>
+                        <select id="specialization" name="specialization">
+                            <option value="">-- اختر التخصص --</option>
+                            {% for spec in specializations %}
+                            <option value="{{ spec.name }}" {% if user.specialization == spec.name %}selected{% endif %}>
+                                {{ spec.name }}
+                            </option>
+                            {% endfor %}
+                            {% if user.specialization %}
+                                {% set found = false %}
+                                {% for spec in specializations %}
+                                    {% if spec.name == user.specialization %}
+                                        {% set found = true %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not found %}
+                                <option value="{{ user.specialization }}" selected>{{ user.specialization }}</option>
+                                {% endif %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="is_student" name="is_student" {% if user.is_student %}checked{% endif %}>
+                            <label for="is_student">طالب</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="is_active" name="is_active" {% if user.is_active %}checked{% endif %}>
+                            <label for="is_active">نشط</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <a href="/users" class="btn btn-secondary">إلغاء</a>
+                    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        async function updateUser(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('user_id').value;
+            const formData = new FormData(event.target);
+            
+            // Add checkbox values
+            formData.append('is_student', document.getElementById('is_student').checked);
+            formData.append('is_active', document.getElementById('is_active').checked);
+            
+            try {
+                const response = await fetch(`/api/users/${userId}/update`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/users';
+                    }, 1500);
+                } else {
+                    showAlert(result.detail || 'حدث خطأ أثناء تحديث بيانات المستخدم', 'error');
+                }
+            } catch (error) {
+                showAlert('حدث خطأ: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+

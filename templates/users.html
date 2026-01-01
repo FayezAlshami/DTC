@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المستخدمين - DTC Job Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #0066CC 0%, #0099FF 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header .logo-container img {
+            height: 50px;
+            width: auto;
+        }
+        .header h1 {
+            font-size: 24px;
+        }
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-menu a {
+            padding: 10px 20px;
+            background: white;
+            text-decoration: none;
+            color: #0066CC;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .nav-menu a:hover, .nav-menu a.active {
+            background: #0066CC;
+            color: white;
+        }
+        .search-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #0066CC;
+        }
+        .search-btn {
+            padding: 12px 24px;
+            background: #0066CC;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .search-btn:hover {
+            background: #004499;
+        }
+        .clear-btn {
+            padding: 12px 24px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .item-title {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .item-meta {
+            color: #666;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        .badge-admin {
+            background: #dc3545;
+            color: white;
+        }
+        .badge-student {
+            background: #17a2b8;
+            color: white;
+        }
+        .badge-user {
+            background: #6c757d;
+            color: white;
+        }
+        .badge-active {
+            background: #28a745;
+            color: white;
+        }
+        .badge-inactive {
+            background: #dc3545;
+            color: white;
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-ban {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-unban {
+            background: #28a745;
+            color: white;
+        }
+        .btn-edit {
+            background: #0066CC;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="DTC Logo">
+            <h1>👥 إدارة المستخدمين</h1>
+        </div>
+        <a href="/logout">تسجيل الخروج</a>
+    </div>
+    
+    <div class="container">
+        <div class="nav-menu">
+            <a href="/dashboard">الرئيسية</a>
+            <a href="/services">الخدمات</a>
+            <a href="/requests">الطلبات</a>
+            <a href="/users" class="active">المستخدمون</a>
+            <a href="/broadcast">الإذاعة</a>
+            <a href="/specializations">الاختصاصات</a>
+        </div>
+        
+        <div class="search-container">
+            <h2 style="margin-bottom: 15px;">🔍 البحث عن المستخدمين</h2>
+            <form class="search-form" method="GET" action="/users">
+                <input 
+                    type="text" 
+                    name="search" 
+                    class="search-input" 
+                    placeholder="ابحث بالاسم، البريد الإلكتروني، أو Telegram ID..." 
+                    value="{{ search_query }}">
+                <button type="submit" class="search-btn">بحث</button>
+                {% if search_query %}
+                <a href="/users" class="clear-btn" style="text-decoration: none; display: inline-block;">مسح</a>
+                {% endif %}
+            </form>
+            {% if search_query %}
+            <p style="margin-top: 10px; color: #666;">
+                نتائج البحث عن: <strong>{{ search_query }}</strong>
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h2>جميع المستخدمين ({{ users|length }})</h2>
+            {% if users %}
+                {% for user in users %}
+                <div class="item">
+                    <div class="item-header">
+                        <div>
+                            <div class="item-title">
+                                {{ user.full_name or 'غير معروف' }}
+                                <span class="badge badge-{{ user.role.value }}">{{ user.role.value }}</span>
+                                {% if user.is_student %}
+                                <span class="badge badge-student">طالب</span>
+                                {% endif %}
+                                {% if user.is_active %}
+                                <span class="badge badge-active">نشط</span>
+                                {% else %}
+                                <span class="badge badge-inactive">محظور</span>
+                                {% endif %}
+                            </div>
+                            <div class="item-meta">
+                                البريد: {{ user.email }}
+                                | Telegram ID: {{ user.telegram_id }}
+                                {% if user.phone_number %}
+                                | الهاتف: {{ user.phone_number }}
+                                {% endif %}
+                                | تاريخ التسجيل: {{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else 'غير متاح' }}
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <a href="/users/{{ user.id }}/edit" class="btn" style="background: #0066CC; color: white;">✏️ تعديل</a>
+                            {% if user.is_active %}
+                            <button class="btn btn-ban" onclick="banUser({{ user.id }}, '{{ user.full_name or user.email }}', {{ 'true' if user.is_student else 'false' }})">🚫 حظر</button>
+                            {% else %}
+                            <button class="btn btn-unban" onclick="unbanUser({{ user.id }}, '{{ user.full_name or user.email }}')">✅ إلغاء الحظر</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>لا يوجد مستخدمون</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        async function banUser(userId, userName, isStudent) {
+            const message = isStudent 
+                ? `هل أنت متأكد من حظر ${userName}؟\nسيتم حذف جميع عروضه تلقائياً.`
+                : `هل أنت متأكد من حظر ${userName}؟`;
+            
+            if (!confirm(message)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/ban_user/${userId}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ أثناء حظر المستخدم');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+        
+        async function unbanUser(userId, userName) {
+            if (!confirm(`هل أنت متأكد من إلغاء حظر ${userName}؟`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/unban_user/${userId}`, { method: 'POST' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.detail || 'حدث خطأ أثناء إلغاء حظر المستخدم');
+                }
+            } catch (error) {
+                alert('حدث خطأ: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+
