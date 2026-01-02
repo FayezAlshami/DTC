@@ -12,20 +12,21 @@ def get_start_keyboard() -> ReplyKeyboardMarkup:
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_main_menu_keyboard(profile_completed: bool = False, user_role: str = "USER") -> ReplyKeyboardMarkup:
+def get_main_menu_keyboard(profile_completed: bool = False, user_role: str = "USER", is_student: bool = False) -> ReplyKeyboardMarkup:
     """Get main menu keyboard based on user role.
     
     Args:
         profile_completed: Whether user has completed their profile
-        user_role: User role - "VISITOR", "STUDENT", "TEACHER", "ADMIN", "USER"
+        user_role: User role - "VISITOR", "TEACHER", "ADMIN", "USER"
+        is_student: Whether user is a student (for USER role)
     """
     builder = ReplyKeyboardBuilder()
     
     # Common for all roles
     builder.add(KeyboardButton(text="💼 الوظائف"))
     
-    # E-Learning - only for STUDENT, TEACHER, ADMIN (not VISITOR)
-    if user_role in ("STUDENT", "TEACHER", "ADMIN"):
+    # E-Learning - for students (USER with is_student=True), TEACHER, ADMIN (not VISITOR)
+    if is_student or user_role in ("TEACHER", "ADMIN"):
         builder.add(KeyboardButton(text="🎓 التعلّم الإلكتروني"))
     
     # Social media - for all
@@ -166,8 +167,28 @@ def get_admin_approval_keyboard(item_id: int, item_type: str) -> InlineKeyboardM
 
 
 def get_profile_keyboard(profile_completed: bool = False, has_contact_accounts: bool = False) -> InlineKeyboardMarkup:
-    """Get profile view keyboard with contact accounts button."""
+    """Get profile view keyboard with edit buttons and contact accounts."""
     builder = InlineKeyboardBuilder()
+    
+    # Edit profile buttons
+    builder.add(InlineKeyboardButton(
+        text="✏️ تعديل الاسم",
+        callback_data="edit_profile_full_name"
+    ))
+    builder.add(InlineKeyboardButton(
+        text="⚧️ تعديل الجنس",
+        callback_data="edit_profile_gender"
+    ))
+    builder.add(InlineKeyboardButton(
+        text="📱 تعديل رقم الهاتف",
+        callback_data="edit_profile_phone"
+    ))
+    builder.add(InlineKeyboardButton(
+        text="📅 تعديل تاريخ الميلاد",
+        callback_data="edit_profile_dob"
+    ))
+    
+    # Contact accounts buttons
     builder.add(InlineKeyboardButton(
         text="➕ إضافة حسابات تواصل",
         callback_data="add_contact_accounts"
@@ -177,7 +198,8 @@ def get_profile_keyboard(profile_completed: bool = False, has_contact_accounts: 
             text="📱 إدارة حسابات التواصل",
             callback_data="manage_contact_accounts"
         ))
-    builder.adjust(1)
+    
+    builder.adjust(2, 2, 1, 1)
     return builder.as_markup()
 
 

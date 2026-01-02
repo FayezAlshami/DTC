@@ -76,7 +76,7 @@ async def cmd_start(message: Message, state: FSMContext, db_session: AsyncSessio
         # User is already logged in and verified
         await message.answer(
             "مرحباً بعودتك! اختر خياراً من القائمة:",
-            reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value)
+            reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value, bool(user.is_student))
         )
         await state.clear()
     else:
@@ -399,7 +399,7 @@ async def process_student_gender(message: Message, state: FSMContext, db_session
         return
     
     # Update user
-    user.role = UserRole.STUDENT
+    user.role = UserRole.USER
     user.is_student = True
     user.full_name = data.get("full_name")
     user.specialization = data.get("specialization_name")
@@ -419,7 +419,7 @@ async def process_student_gender(message: Message, state: FSMContext, db_session
         f"• رقم الطالب: {user.student_id}\n"
         f"• الجنس: {'ذكر' if gender == Gender.MALE else 'أنثى'}\n\n"
         "مرحباً بك في بوت DTC Job!",
-        reply_markup=get_main_menu_keyboard(True, "STUDENT")
+        reply_markup=get_main_menu_keyboard(True, "USER", is_student=True)
     )
     await state.clear()
 
@@ -874,6 +874,6 @@ async def process_login_password(message: Message, state: FSMContext, db_session
     
     await message.answer(
         f"✅ تم تسجيل الدخول بنجاح! مرحباً بعودتك، {user.full_name or 'المستخدم'}!",
-        reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value)
+        reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value, bool(user.is_student))
     )
     await state.clear()

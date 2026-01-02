@@ -171,7 +171,7 @@ async def dashboard(
     
     # Count by role
     teachers_count = len([u for u in all_users if u.role == UserRole.TEACHER])
-    students_count = len([u for u in all_users if u.role == UserRole.STUDENT])
+    students_count = len([u for u in all_users if bool(u.is_student)])
     visitors_count = len([u for u in all_users if u.role == UserRole.VISITOR])
     
     # Get subjects count

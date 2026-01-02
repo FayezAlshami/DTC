@@ -90,7 +90,7 @@ async def process_price_filter(message: Message, state: FSMContext, db_session: 
         # Convert Column[bool] to bool
         await message.answer(
             "تم إلغاء التصفح.",
-            reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value)
+            reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
         )
         return
     
@@ -129,7 +129,7 @@ async def process_price_filter(message: Message, state: FSMContext, db_session: 
         await message.answer(
             "لم يتم العثور على خدمات تطابق معاييرك.\n\n"
             "جرب فلاتر مختلفة أو تحقق لاحقاً.",
-            reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value)
+            reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
         )
         await state.clear()
         return

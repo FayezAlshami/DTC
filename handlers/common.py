@@ -85,12 +85,12 @@ def require_auth(handler):
 
 
 def require_student(handler):
-    """Decorator to require student role."""
+    """Decorator to require student (checks is_student flag, not role)."""
     @wraps(handler)
     async def wrapper(*args, **kwargs):
         user: Optional[User] = kwargs.get("user")
         
-        if user is None or user.role != UserRole.STUDENT:
+        if user is None or not bool(user.is_student):
             message = args[0] if args and isinstance(args[0], (Message, CallbackQuery)) else kwargs.get("message")
             callback = args[0] if args and isinstance(args[0], CallbackQuery) else kwargs.get("callback")
             

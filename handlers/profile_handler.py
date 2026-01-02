@@ -30,6 +30,11 @@ class ProfileStates(StatesGroup):
     waiting_for_contact_platform = State()
     waiting_for_contact_username = State()
     waiting_for_contact_url = State()
+    # Edit profile states
+    editing_full_name = State()
+    editing_phone = State()
+    editing_dob = State()
+    editing_gender = State()
 
 
 @router.message(F.text == "إكمال ملفك الشخصي")
@@ -51,35 +56,77 @@ async def start_profile_completion(message: Message, state: FSMContext, user: Us
 @router.message(F.text == "عرض ملفك الشخصي")
 @require_auth
 async def view_profile(message: Message, user: User, db_session: AsyncSession, **kwargs):
-    """View user profile."""
-    profile_text = f"📋 ملفك الشخصي\n\n"
+    """View user profile with enhanced information."""
+    profile_text = f"📋 <b>ملفك الشخصي</b>\n\n"
     
     # Basic info
     full_name = getattr(user, 'full_name', None)
-    profile_text += f"- الاسم الكامل: {full_name if full_name not in [None, ''] else 'غير محدد'}\n"
-    profile_text += f"- البريد الإلكتروني: {getattr(user, 'email', '')}\n"
+    profile_text += f"👤 <b>الاسم الكامل:</b> {full_name if full_name not in [None, ''] else 'غير محدد'}\n"
+    profile_text += f"📧 <b>البريد الإلكتروني:</b> {getattr(user, 'email', '')}\n"
     
     phone_number = getattr(user, 'phone_number', None)
-    profile_text += f"- رقم الهاتف: {phone_number if phone_number not in [None, ''] else 'غير محدد'}\n"
+    profile_text += f"📱 <b>رقم الهاتف:</b> {phone_number if phone_number not in [None, ''] else 'غير محدد'}\n"
     
     date_of_birth = getattr(user, 'date_of_birth', None)
-    profile_text += f"- تاريخ الميلاد: {date_of_birth.strftime('%Y-%m-%d') if date_of_birth else 'غير محدد'}\n"
+    if date_of_birth:
+        profile_text += f"📅 <b>تاريخ الميلاد:</b> {date_of_birth.strftime('%Y-%m-%d')}\n"
+    else:
+        profile_text += f"📅 <b>تاريخ الميلاد:</b> غير محدد\n"
     
     gender = getattr(user, 'gender', None)
-    gender_value = gender.value if gender is not None else 'غير محدد'
-    profile_text += f"- الجنس: {gender_value}\n"
+    gender_value = "ذكر" if gender == Gender.MALE else ("أنثى" if gender == Gender.FEMALE else "غير محدد")
+    profile_text += f"⚧️ <b>الجنس:</b> {gender_value}\n"
+    
+    # Role info
+    role = getattr(user, 'role', None)
+    if role:
+        role_names = {
+            "ADMIN": "👑 مسؤول",
+            "TEACHER": "👨‍🏫 أستاذ",
+            "USER": "👤 مستخدم",
+            "VISITOR": "👤 زائر"
+        }
+        role_name = role_names.get(role.value, role.value)
+        profile_text += f"🎭 <b>الدور:</b> {role_name}\n"
 
     # Student info
     if bool(user.is_student):
-        profile_text += f"\n🎓 معلومات الطالب:\n"
+        profile_text += f"\n🎓 <b>معلومات الطالب:</b>\n"
         student_id = getattr(user, 'student_id', None)
-        specialization = getattr(user, 'specialization', None)
-        profile_text += f"- رقم الطالب: {student_id if student_id not in [None, ''] else 'غير محدد'}\n"
-        profile_text += f"- التخصص: {specialization if specialization not in [None, ''] else 'غير محدد'}\n"
-
-    # Profile completion status
-    profile_text += f"\nحالة الملف الشخصي: {'✅ مكتمل' if bool(user.profile_completed) else '❌ غير مكتمل'}"
-
+        profile_text += f"   • <b>رقم الطالب:</b> {student_id if student_id not in [None, ''] else 'غير محدد'}\n"
+        
+        # Get specialization name from specialization_id
+        if user.specialization_id:
+            spec_repo = SpecializationRepository(db_session)
+            specialization = await spec_repo.get_by_id(user.specialization_id)
+            if specialization:
+                profile_text += f"   • <b>التخصص:</b> {specialization.name}\n"
+            else:
+                profile_text += f"   • <b>التخصص:</b> غير محدد\n"
+        else:
+            specialization = getattr(user, 'specialization', None)
+            profile_text += f"   • <b>التخصص:</b> {specialization if specialization not in [None, ''] else 'غير محدد'}\n"
+    
+    # Teacher info
+    if role and role.value == "TEACHER":
+        teacher_number = getattr(user, 'teacher_number', None)
+        if teacher_number:
+            profile_text += f"\n👨‍🏫 <b>معلومات الأستاذ:</b>\n"
+            profile_text += f"   • <b>رقم الأستاذ:</b> {teacher_number}\n"
+    
+    # Visitor info
+    if role and role.value == "VISITOR":
+        visitor_number = getattr(user, 'visitor_number', None)
+        if visitor_number:
+            profile_text += f"\n👤 <b>معلومات الزائر:</b>\n"
+            profile_text += f"   • <b>رقم الزائر:</b> {visitor_number}\n"
+    
+    # Account info
+    profile_text += f"\n📊 <b>معلومات الحساب:</b>\n"
+    profile_text += f"   • <b>حالة الملف:</b> {'✅ مكتمل' if bool(user.profile_completed) else '❌ غير مكتمل'}\n"
+    profile_text += f"   • <b>حالة الحساب:</b> {'✅ نشط' if bool(user.is_active) else '❌ غير نشط'}\n"
+    profile_text += f"   • <b>البريد موثق:</b> {'✅ نعم' if bool(user.email_verified) else '❌ لا'}\n"
+    
     # Get contact accounts
     from database.models import ContactAccount
     from sqlalchemy import select
@@ -88,10 +135,10 @@ async def view_profile(message: Message, user: User, db_session: AsyncSession, *
     result = await db_session.execute(contact_accounts_query)
     contact_accounts = result.scalars().all()
     
-    # Create keyboard with contact accounts button
+    # Create keyboard with edit buttons and contact accounts
     keyboard = get_profile_keyboard(bool(user.profile_completed), len(contact_accounts) > 0)
 
-    await message.answer(profile_text, reply_markup=keyboard)
+    await message.answer(profile_text, parse_mode="HTML", reply_markup=keyboard)
 
 
 @router.message(ProfileStates.waiting_for_full_name)
@@ -103,7 +150,7 @@ async def process_full_name(message: Message, state: FSMContext, db_session: Asy
     
     if message.text == "إلغاء":
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     full_name = message.text.strip()
@@ -131,7 +178,7 @@ async def process_student_choice(message: Message, state: FSMContext, db_session
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     if message.text.lower() in ["yes", "y", "نعم"]:
@@ -154,7 +201,7 @@ async def process_student_id(message: Message, state: FSMContext, db_session: As
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     student_id = message.text.strip()
@@ -275,7 +322,7 @@ async def process_phone(message: Message, state: FSMContext, db_session: AsyncSe
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     phone: Optional[str] = None
@@ -301,7 +348,7 @@ async def process_dob(message: Message, state: FSMContext, db_session: AsyncSess
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     dob: Optional[datetime] = None
@@ -331,7 +378,7 @@ async def process_gender(message: Message, state: FSMContext, db_session: AsyncS
     
     if message.text.lower() in ["cancel", "إلغاء"]:
         await state.clear()
-        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value))
+        await message.answer("تم إلغاء إكمال الملف الشخصي.", reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student)))
         return
 
     gender: Optional[Gender] = None
@@ -394,7 +441,7 @@ async def process_gender(message: Message, state: FSMContext, db_session: AsyncS
         await message.answer(
             "✅ تم إكمال ملفك الشخصي بنجاح!\n\n"
             "يمكنك الآن استخدام جميع ميزات البوت.",
-            reply_markup=get_main_menu_keyboard(True, user.role.value)
+            reply_markup=get_main_menu_keyboard(True, user.role.value, bool(user.is_student))
         )
         
     except Exception as e:
@@ -586,7 +633,7 @@ async def process_contact_url(message: Message, state: FSMContext, db_session: A
         f"✅ تم إضافة حساب {platform} بنجاح!\n\n"
         f"المستخدم: {username or 'غير محدد'}\n"
         f"الرابط: {url or 'غير محدد'}",
-        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value)
+        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
     )
 
 
@@ -670,3 +717,213 @@ async def delete_contact_account(callback: CallbackQuery, db_session: AsyncSessi
             callback.from_user.id,  # type: ignore
             f"✅ تم حذف حساب {platform} بنجاح."
         )
+
+
+# Edit Profile Handlers
+@router.callback_query(F.data == "edit_profile_full_name")
+@require_auth
+async def start_edit_full_name(callback: CallbackQuery, state: FSMContext, user: User, **kwargs):
+    """Start editing full name."""
+    await callback.answer()
+    await callback.message.answer(
+        "✏️ <b>تعديل الاسم الكامل</b>\n\n"
+        "يرجى إدخال الاسم الكامل الجديد:",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+    )
+    await state.set_state(ProfileStates.editing_full_name)
+
+
+@router.message(ProfileStates.editing_full_name)
+@require_auth
+async def process_edit_full_name(message: Message, state: FSMContext, db_session: AsyncSession, user: User, **kwargs):
+    """Process edited full name."""
+    if message.text and message.text.lower() in ["إلغاء", "cancel"]:
+        await state.clear()
+        await message.answer("تم إلغاء التعديل.")
+        return
+    
+    if not message.text:
+        await message.answer("يرجى إدخال نص صحيح.")
+        return
+    
+    full_name = message.text.strip()
+    if len(full_name) < 2 or len(full_name) > 255:
+        await message.answer("❌ يجب أن يكون الاسم الكامل بين 2 و 255 حرفاً. يرجى المحاولة مرة أخرى:")
+        return
+    
+    user.full_name = full_name  # type: ignore
+    await db_session.commit()
+    await db_session.refresh(user)
+    
+    await state.clear()
+    await message.answer(
+        f"✅ <b>تم تحديث الاسم الكامل بنجاح!</b>\n\n"
+        f"الاسم الجديد: <b>{full_name}</b>",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
+    )
+
+
+@router.callback_query(F.data == "edit_profile_phone")
+@require_auth
+async def start_edit_phone(callback: CallbackQuery, state: FSMContext, user: User, **kwargs):
+    """Start editing phone number."""
+    await callback.answer()
+    current_phone = getattr(user, 'phone_number', None) or "غير محدد"
+    await callback.message.answer(
+        f"📱 <b>تعديل رقم الهاتف</b>\n\n"
+        f"الرقم الحالي: <b>{current_phone}</b>\n\n"
+        "يرجى إدخال رقم الهاتف الجديد (أو اكتب 'تخطي' لحذف الرقم):",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+    )
+    await state.set_state(ProfileStates.editing_phone)
+
+
+@router.message(ProfileStates.editing_phone)
+@require_auth
+async def process_edit_phone(message: Message, state: FSMContext, db_session: AsyncSession, user: User, **kwargs):
+    """Process edited phone number."""
+    if message.text and message.text.lower() in ["إلغاء", "cancel"]:
+        await state.clear()
+        await message.answer("تم إلغاء التعديل.")
+        return
+    
+    phone: Optional[str] = None
+    if message.text and message.text.lower() not in ["تخطي", "skip"]:
+        phone_input = message.text.strip()
+        profile_service = ProfileService(db_session)
+        if not profile_service.validate_phone(phone_input):
+            await message.answer("❌ صيغة رقم الهاتف غير صحيحة. يرجى المحاولة مرة أخرى أو اكتب 'تخطي':")
+            return
+        phone = phone_input
+    
+    user.phone_number = phone  # type: ignore
+    await db_session.commit()
+    await db_session.refresh(user)
+    
+    await state.clear()
+    phone_display = phone if phone else "تم حذف الرقم"
+    await message.answer(
+        f"✅ <b>تم تحديث رقم الهاتف بنجاح!</b>\n\n"
+        f"الرقم الجديد: <b>{phone_display}</b>",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
+    )
+
+
+@router.callback_query(F.data == "edit_profile_dob")
+@require_auth
+async def start_edit_dob(callback: CallbackQuery, state: FSMContext, user: User, **kwargs):
+    """Start editing date of birth."""
+    await callback.answer()
+    current_dob = getattr(user, 'date_of_birth', None)
+    dob_display = current_dob.strftime('%Y-%m-%d') if current_dob else "غير محدد"
+    await callback.message.answer(
+        f"📅 <b>تعديل تاريخ الميلاد</b>\n\n"
+        f"التاريخ الحالي: <b>{dob_display}</b>\n\n"
+        "يرجى إدخال تاريخ الميلاد الجديد (صيغة YYYY-MM-DD، أو اكتب 'تخطي' لحذف التاريخ):",
+        parse_mode="HTML",
+        reply_markup=get_cancel_keyboard()
+    )
+    await state.set_state(ProfileStates.editing_dob)
+
+
+@router.message(ProfileStates.editing_dob)
+@require_auth
+async def process_edit_dob(message: Message, state: FSMContext, db_session: AsyncSession, user: User, **kwargs):
+    """Process edited date of birth."""
+    if message.text and message.text.lower() in ["إلغاء", "cancel"]:
+        await state.clear()
+        await message.answer("تم إلغاء التعديل.")
+        return
+    
+    dob: Optional[datetime] = None
+    if message.text and message.text.lower() not in ["تخطي", "skip"]:
+        try:
+            dob = datetime.strptime(message.text.strip(), "%Y-%m-%d")
+        except ValueError:
+            await message.answer("❌ صيغة التاريخ غير صحيحة. يرجى استخدام صيغة YYYY-MM-DD أو اكتب 'تخطي':")
+            return
+    
+    user.date_of_birth = dob  # type: ignore
+    await db_session.commit()
+    await db_session.refresh(user)
+    
+    await state.clear()
+    dob_display = dob.strftime('%Y-%m-%d') if dob else "تم حذف التاريخ"
+    await message.answer(
+        f"✅ <b>تم تحديث تاريخ الميلاد بنجاح!</b>\n\n"
+        f"التاريخ الجديد: <b>{dob_display}</b>",
+        parse_mode="HTML",
+        reply_markup=get_main_menu_keyboard(bool(user.profile_completed), user.role.value, bool(user.is_student))
+    )
+
+
+@router.callback_query(F.data == "edit_profile_gender")
+@require_auth
+async def start_edit_gender(callback: CallbackQuery, state: FSMContext, user: User, **kwargs):
+    """Start editing gender."""
+    await callback.answer()
+    current_gender = getattr(user, 'gender', None)
+    gender_display = "ذكر" if current_gender == Gender.MALE else ("أنثى" if current_gender == Gender.FEMALE else "غير محدد")
+    
+    # Build inline keyboard for gender selection
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    from aiogram.types import InlineKeyboardButton
+    
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(text="👤 ذكر", callback_data="edit_gender_male"))
+    builder.add(InlineKeyboardButton(text="👩 أنثى", callback_data="edit_gender_female"))
+    builder.add(InlineKeyboardButton(text="❌ حذف", callback_data="edit_gender_remove"))
+    builder.adjust(2, 1)
+    
+    await callback.message.answer(
+        f"⚧️ <b>تعديل الجنس</b>\n\n"
+        f"الجنس الحالي: <b>{gender_display}</b>\n\n"
+        "اختر الجنس الجديد:",
+        parse_mode="HTML",
+        reply_markup=builder.as_markup()
+    )
+    await state.set_state(ProfileStates.editing_gender)
+
+
+@router.callback_query(F.data.startswith("edit_gender_"), ProfileStates.editing_gender)
+@require_auth
+async def process_edit_gender(callback: CallbackQuery, state: FSMContext, db_session: AsyncSession, user: User, **kwargs):
+    """Process edited gender."""
+    if not callback.data:
+        await callback.answer("خطأ في البيانات.", show_alert=True)
+        return
+    
+    gender: Optional[Gender] = None
+    gender_display = ""
+    
+    if callback.data == "edit_gender_male":
+        gender = Gender.MALE
+        gender_display = "ذكر"
+    elif callback.data == "edit_gender_female":
+        gender = Gender.FEMALE
+        gender_display = "أنثى"
+    elif callback.data == "edit_gender_remove":
+        gender = None
+        gender_display = "تم حذف الجنس"
+    else:
+        await callback.answer("خيار غير صحيح.", show_alert=True)
+        return
+    
+    user.gender = gender  # type: ignore
+    await db_session.commit()
+    await db_session.refresh(user)
+    
+    await state.clear()
+    await callback.answer()
+    
+    if callback.message:
+        await callback.message.edit_text(
+            f"✅ <b>تم تحديث الجنس بنجاح!</b>\n\n"
+            f"الجنس الجديد: <b>{gender_display}</b>",
+            parse_mode="HTML"
+        )
+        await callback.message.edit_reply_markup(reply_markup=None)

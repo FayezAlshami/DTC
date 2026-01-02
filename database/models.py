@@ -15,7 +15,6 @@ class UserRole(PyEnum):
     """User role enumeration (stored uppercase to match DB)."""
     ADMIN = "ADMIN"
     TEACHER = "TEACHER"
-    STUDENT = "STUDENT"
     VISITOR = "VISITOR"
     USER = "USER"
 
@@ -101,6 +100,9 @@ class User(Base):
     # Teacher relationships (for users with TEACHER role)
     teacher_specializations = relationship("TeacherSpecialization", back_populates="teacher", cascade="all, delete-orphan")
     teacher_subjects = relationship("TeacherSubject", back_populates="teacher", cascade="all, delete-orphan")
+    
+    # Student relationships (for users with is_student=True)
+    assignment_submissions = relationship("AssignmentSubmission", back_populates="student", cascade="all, delete-orphan")
 
 
 class VerificationCode(Base):
@@ -254,6 +256,7 @@ class Subject(Base):
     # Relationships
     specialization = relationship("Specialization", back_populates="subjects")
     teachers = relationship("TeacherSubject", back_populates="subject", cascade="all, delete-orphan")
+    assignment_submissions = relationship("AssignmentSubmission", back_populates="subject", cascade="all, delete-orphan")
 
 
 class TeacherSpecialization(Base):
@@ -288,6 +291,7 @@ class TeacherSubject(Base):
     teacher = relationship("User", back_populates="teacher_subjects")
     subject = relationship("Subject", back_populates="teachers")
     lectures = relationship("Lecture", back_populates="teacher_subject", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="teacher_subject", cascade="all, delete-orphan")
 
 
 class Lecture(Base):
@@ -308,3 +312,46 @@ class Lecture(Base):
 
     # Relationships
     teacher_subject = relationship("TeacherSubject", back_populates="lectures")
+
+
+class Assignment(Base):
+    """Assignment model - وظيفة مرتبطة بمادة وأستاذ."""
+    __tablename__ = "assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    teacher_subject_id = Column(Integer, ForeignKey("teacher_subjects.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=True)  # عنوان الوظيفة (اختياري)
+    description = Column(Text, nullable=True)  # وصف الوظيفة (اختياري)
+    file_id = Column(String(500), nullable=False)  # Telegram file_id
+    file_type = Column(String(50), nullable=False)  # document, photo, video, audio, voice, video_note
+    file_name = Column(String(500), nullable=True)  # اسم الملف الأصلي
+    file_size = Column(Integer, nullable=True)  # حجم الملف بالبايت
+    display_order = Column(Integer, default=0, nullable=False)  # ترتيب الملف في الوظيفة
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    teacher_subject = relationship("TeacherSubject", back_populates="assignments")
+    student_submissions = relationship("AssignmentSubmission", back_populates="assignment", cascade="all, delete-orphan")
+
+
+class AssignmentSubmission(Base):
+    """Assignment submission model - حل الوظيفة من الطالب."""
+    __tablename__ = "assignment_submissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    assignment_id = Column(Integer, ForeignKey("assignments.id"), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False, index=True)  # For quick access
+    file_id = Column(String(500), nullable=False)  # Telegram file_id
+    file_type = Column(String(50), nullable=False)  # document (usually)
+    file_name = Column(String(500), nullable=True)  # اسم الملف الأصلي
+    file_size = Column(Integer, nullable=True)  # حجم الملف بالبايت
+    notes = Column(Text, nullable=True)  # ملاحظات الطالب (اختياري)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    student = relationship("User", back_populates="assignment_submissions")
+    assignment = relationship("Assignment", back_populates="student_submissions")
+    subject = relationship("Subject", back_populates="assignment_submissions")

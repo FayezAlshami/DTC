@@ -32,7 +32,7 @@ async def back_to_main_menu(message: Message, user: User):
     """Return to main menu."""
     await message.answer(
         "القائمة الرئيسية",
-        reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value)
+        reply_markup=get_main_menu_keyboard(user.profile_completed, user.role.value, bool(user.is_student))
     )
 
 
