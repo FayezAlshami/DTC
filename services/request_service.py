@@ -13,24 +13,20 @@ class RequestService:
     def __init__(self, session: AsyncSession):
         self.request_repo = ServiceRequestRepository(session)
     
-    def validate_budget(self, budget_str: str) -> tuple[bool, Optional[str], Optional[Decimal], Optional[Decimal]]:
+    def validate_budget(self, budget_str: str) -> tuple[bool, Optional[str], Optional[Decimal], Optional[Decimal], Optional[Decimal]]:
         """Validate budget format (fixed or range)."""
         if not budget_str or not isinstance(budget_str, str):
             return False, "يرجى إدخال قيمة صحيحة للميزانية.", None, None, None
         
-        # تنظيف النص من الرموز والأحرف غير المرغوبة
         budget_str = budget_str.strip().replace("$", "").replace(",", "").replace(" ", "")
         
-        # إزالة الأحرف غير الرقمية (مثل / أو أي رموز أخرى)
         import re
-        # السماح بالأرقام والنقطة والشرطة فقط
         budget_str = re.sub(r'[^\d.\-]', '', budget_str)
         
         if not budget_str:
             return False, "يرجى إدخال رقم صحيح للميزانية (مثال: 150 أو 150-200).", None, None, None
         
         if "-" in budget_str:
-            # Range
             parts = budget_str.split("-")
             if len(parts) != 2:
                 return False, "صيغة الميزانية غير صحيحة. استخدم: حد أدنى-حد أعلى (مثال: 200-300)", None, None, None
@@ -50,16 +46,15 @@ class RequestService:
                 if min_budget >= max_budget:
                     return False, "الحد الأدنى يجب أن يكون أقل من الحد الأعلى.", None, None, None
                 return True, None, None, min_budget, max_budget
-            except (ValueError, Exception) as e:
+            except (ValueError, Exception):
                 return False, "صيغة الميزانية غير صحيحة. استخدم أرقاماً فقط (مثال: 200-300).", None, None, None
         else:
-            # Fixed
             try:
                 budget = Decimal(budget_str)
                 if budget <= 0:
                     return False, "يجب أن تكون الميزانية رقماً موجباً.", None, None, None
                 return True, None, budget, None, None
-            except (ValueError, Exception) as e:
+            except (ValueError, Exception):
                 return False, "صيغة الميزانية غير صحيحة. استخدم رقماً فقط (مثال: 150 أو 150$).", None, None, None
     
     async def create_request(
@@ -72,28 +67,23 @@ class RequestService:
         preferred_gender: Optional[Gender] = None
     ) -> tuple[bool, Optional[ServiceRequest], Optional[str]]:
         """Create a new service request."""
-        # Validate title
         if not title or len(title.strip()) < 5:
             return False, None, "Title must be at least 5 characters long."
         if len(title) > config.MAX_TITLE_LENGTH:
             return False, None, f"Title must be no more than {config.MAX_TITLE_LENGTH} characters."
         
-        # Validate description
         if not description or len(description.strip()) < 20:
             return False, None, "Description must be at least 20 characters long."
         if len(description) > config.MAX_DESCRIPTION_LENGTH:
             return False, None, f"Description must be no more than {config.MAX_DESCRIPTION_LENGTH} characters."
         
-        # Validate specializations
         if not allowed_specializations or len(allowed_specializations) == 0:
             return False, None, "At least one specialization must be specified."
         
-        # Validate budget
         is_valid, error, budget_fixed, budget_min, budget_max = self.validate_budget(budget_str)
         if not is_valid:
             return False, None, error
         
-        # Create request
         requester_id: int = requester.id  # type: ignore[assignment]
         request = ServiceRequest(
             requester_id=requester_id,
@@ -113,37 +103,32 @@ class RequestService:
     
     def format_budget(self, request: ServiceRequest) -> str:
         """Format request budget for display."""
-        if request.budget_type == "fixed":
+        if request.budget_type == "fixed":  # type: ignore[truthy-bool]
             return f"${request.budget_fixed}"
         else:
             return f"${request.budget_min} - ${request.budget_max}"
     
     def can_respond_to_request(self, user: User, request: ServiceRequest) -> tuple[bool, Optional[str]]:
         """Check if user can respond to a request."""
-        # فقط الطلاب يمكنهم تقديم الخدمات للطلبات
-        if not user.is_student:
+        if not user.is_student:  # type: ignore[truthy-bool]
             return False, "فقط الطلاب يمكنهم تقديم الخدمات للطلبات."
         
-        if not user.profile_completed:
+        if not user.profile_completed:  # type: ignore[truthy-bool]
             return False, "يجب إكمال ملفك الشخصي أولاً."
         
-        # التحقق من وجود التخصص
         user_specialization = getattr(user, 'specialization', None)
         if not user_specialization:
             return False, "يجب أن يكون لديك تخصص محدد لتقديم الخدمات."
         
-        # التحقق من أن تخصص المستخدم مسموح في الطلب
         allowed_specs = request.allowed_specializations if isinstance(request.allowed_specializations, list) else []
         if user_specialization not in allowed_specs:
             return False, f"تخصصك ({user_specialization}) غير مسموح به لهذا الطلب. التخصصات المطلوبة: {', '.join(allowed_specs)}"
         
-        # التحقق من الجنس المفضل إذا كان محدداً
-        if request.preferred_gender:
+        if request.preferred_gender:  # type: ignore[truthy-value]
             user_gender = getattr(user, 'gender', None)
-            if user_gender and request.preferred_gender != user_gender:
+            if user_gender and request.preferred_gender != user_gender:  # type: ignore[truthy-bool]
                 gender_names = {"male": "ذكر", "female": "أنثى"}
                 preferred = gender_names.get(str(request.preferred_gender), str(request.preferred_gender))
                 return False, f"هذا الطلب يتطلب جنس: {preferred}"
         
         return True, None
-

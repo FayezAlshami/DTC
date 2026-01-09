@@ -170,9 +170,10 @@ async def dashboard(
     all_users = all_users.scalars().all()
     
     # Count by role
-    teachers_count = len([u for u in all_users if u.role == UserRole.TEACHER])
-    students_count = len([u for u in all_users if bool(u.is_student)])
-    visitors_count = len([u for u in all_users if u.role == UserRole.VISITOR])
+    teachers_count = len([u for u in all_users if getattr(u, 'role', None) == UserRole.TEACHER])
+    students_count = len([u for u in all_users if bool(getattr(u, 'is_student', False))])
+    visitors_count = len([u for u in all_users if getattr(u, 'role', None) == UserRole.VISITOR])
+
     
     # Get subjects count
     all_subjects = await db.execute(select(Subject))
@@ -812,7 +813,8 @@ async def update_subject(
     # Check if code already exists for another subject
     if code:
         existing = await subject_repo.get_by_code(code.strip())
-        if existing and existing.id != subject_id:
+        if existing and getattr(existing, 'id', None) != subject_id:
+
             raise HTTPException(status_code=400, detail="رمز المادة مستخدم بالفعل")
     
     subject.name = name.strip()  # type: ignore
@@ -840,7 +842,7 @@ async def toggle_subject(
     if not subject:
         raise HTTPException(status_code=404, detail="المادة غير موجودة")
     
-    if subject.is_active:
+    if getattr(subject, 'is_active', False):  # type: ignore[truthy-bool]
         await subject_repo.deactivate(subject_id)
         return {"status": "success", "message": "تم تعطيل المادة"}
     else:
@@ -895,9 +897,9 @@ async def teachers_page(
         search_lower = search.lower()
         all_teachers = [
             t for t in all_teachers 
-            if (t.full_name and search_lower in t.full_name.lower()) or
-               (t.email and search_lower in t.email.lower()) or
-               (t.teacher_number and search_lower in t.teacher_number.lower())
+            if (getattr(t, 'full_name', None) and search_lower in t.full_name.lower()) or \
+   (getattr(t, 'email', None) and search_lower in t.email.lower()) or \
+   (getattr(t, 'teacher_number', None) and search_lower in t.teacher_number.lower())
         ]
     
     with open("templates/teachers.html", "r", encoding="utf-8") as f:
@@ -1041,7 +1043,7 @@ async def update_teacher(
     user_repo = UserRepository(db)
     teacher = await user_repo.get_by_id(teacher_id)
     
-    if not teacher or teacher.role != UserRole.TEACHER:
+    if not teacher or getattr(teacher, 'role', None) != UserRole.TEACHER:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=404, detail="الأستاذ غير موجود")
     
     if full_name is not None:
@@ -1051,7 +1053,7 @@ async def update_teacher(
     if email is not None:
         # Check if email already exists for another user
         existing = await user_repo.get_by_email(email.strip())
-        if existing and existing.id != teacher_id:
+        if existing and getattr(existing, 'id', None) != teacher_id:
             raise HTTPException(status_code=400, detail="البريد الإلكتروني مستخدم بالفعل")
         teacher.email = email.strip()  # type: ignore
     if phone_number is not None:

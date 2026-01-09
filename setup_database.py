@@ -2,6 +2,7 @@
 import asyncio
 from database.base import init_db
 
+
 async def setup():
     """Initialize database tables."""
     print("🚀 بدء إعداد قاعدة البيانات...")
@@ -22,6 +23,6 @@ async def setup():
         print("  2. صحة إعدادات قاعدة البيانات في config.py أو .env")
         print("  3. وجود قاعدة البيانات dtc_job_bot")
 
+
 if __name__ == "__main__":
     asyncio.run(setup())
-
